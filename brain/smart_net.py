@@ -33,3 +33,13 @@ class SmartNet(BaseAgent):
             actions |= agent.sample_action()
         
         return actions
+    
+    def train(self, state, reward):
+        """
+        Gets the full state of the whole net.
+        Distribute the state and rewards down to each agent to learn.
+        """
+        for agent in self.agents:
+            agent_state = state[:]
+            agent_reward = reward[:]
+            agent.train(agent_state, agent_reward)

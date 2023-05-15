@@ -8,6 +8,7 @@ class SmartAgent(BaseAgent):
     """
     def __init__(self, action_space):
         self.action_space = action_space
+        # TODO init DQN (policy net)
 
     def tranform_to_dict(self, actions):
         """
@@ -22,8 +23,15 @@ class SmartAgent(BaseAgent):
         return action        
         
     def sample_action(self):
-        # TODO: DQN
+        """
+        Infer from DQN (policy net)
+        """
         random_action = self.action_space.sample()
         action = self.tranform_to_dict(random_action)
 
         return action
+    
+    def train(self):
+        """
+        Receives the state for a specific agent and trains the agent's model.
+        """
