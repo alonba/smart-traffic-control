@@ -11,6 +11,7 @@ class SmartNet(BaseAgent):
         agents = []
         for i in range(nodes_num):
             # Get the actions of the specific agent
+            # TODO dict instead of list
             agent_action_space = Dict()
             for k,v in action_space.items():
                 if f"i{i}" in k:
