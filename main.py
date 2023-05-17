@@ -10,37 +10,49 @@ env = RDDLEnv.RDDLEnv(domain=domain, instance=instance)
 num_of_nodes_in_grid = len(env.model.objects['intersection'])
 
 # Init agents (a net holds agents, one for each node)
-smart_net = SmartNet(action_space=env.action_space, nodes_num=num_of_nodes_in_grid)
+smart_net = SmartNet(nodes_num=num_of_nodes_in_grid, observation_space=env.observation_space, action_space=env.action_space)
 
 # Set visualizer
 viz = ExampleManager.GetEnvInfo('Traffic').get_visualizer()
 env.set_visualizer(viz)
 
+def print_step_number(step):
+    print(f'step = {step}')
+    
+def print_step_status(step, state, action, next_state, reward):
+    print()
+    print(f'step = {step}')
+    print(f'state      = {state}')
+    print(f'action     = {action}')
+    print(f'next state = {next_state}')
+    print(f'reward     = {reward}')
+    
 # TODO init replay memory 
 # https://colab.research.google.com/github/pytorch/tutorials/blob/gh-pages/_downloads/9da0471a9eeb2351a488cd4b44fc6bbf/reinforcement_q_learning.ipynb#scrollTo=UumN5HdU_EeE
 
 if __name__=="__main__":
     total_reward = 0
+    reward = 0
     state = env.reset()
     for step in range(env.horizon):
         env.render()
         
-        # Training
-        smart_net.train(state, reward)
+        # Select action
+        action = smart_net.sample_action(state)
         
-        # Inference
-        action = smart_net.sample_action()
-        
+        # Make a step
+        print_step_number(step)
         next_state, reward, done, info = env.step(action)
         total_reward += reward
-        # print()
-        print(f'step = {step}')
-        # print(f'state      = {state})
-        # print(f'action     = {action})
-        # print(f'next state = {next_state})
-        # print(f'reward     = {reward})
+        
+        # Progress to the next step
         state = next_state
+        
+        # Train the policies networks
+        smart_net.train(state, reward)
+        
         if done:
             break
-    print("episode ended with reward {}".format(total_reward))
+        
+    print(f"episode ended with reward {total_reward}")
     env.close()

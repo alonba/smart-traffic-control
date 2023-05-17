@@ -1,36 +1,42 @@
-import gym
-
 from gym.spaces import Dict
 from pyRDDLGym.Policies.Agents import BaseAgent
 from brain.agent import SmartAgent
 
 class SmartNet(BaseAgent):
-    def __init__(self, action_space, nodes_num):
+    def __init__(self, nodes_num, observation_space, action_space):
         self.action_space = action_space
         
-        agents = []
+        agents = {}
         for i in range(nodes_num):
+            intersection_name = f"i{i}"
+            
             # Get the actions of the specific agent
-            # TODO dict instead of list
             agent_action_space = Dict()
             for k,v in action_space.items():
-                if f"i{i}" in k:
+                if intersection_name in k:
                     agent_action_space[k] = v
-            
+
+            # Get the observations of the specific agent
+            agent_observation_space = Dict()
+            for k,v in observation_space.items():
+                if intersection_name in k:
+                    agent_observation_space[k] = v
+                
             # Init the agent
-            agent = SmartAgent(agent_action_space)
-            agents.append(agent)
+            agent = SmartAgent(agent_action_space, agent_observation_space)
+            agents[intersection_name] = agent
             
         self.agents = agents
 
-    def sample_action(self):
+    def sample_action(self, state):
         """
         Get the actions for each node (agent).
         Return a dictionary with all the chosen actions.
         """
         actions = {}
-        for agent in self.agents:
-            actions |= agent.sample_action()
+        for intersection_name, agent in self.agents.items():
+            agent_state = agent.filter_agent_state_from_full_state(state)
+            actions |= agent.sample_action(agent_state)
         
         return actions
     
@@ -39,7 +45,8 @@ class SmartNet(BaseAgent):
         Gets the full state of the whole net.
         Distribute the state and rewards down to each agent to learn.
         """
-        for agent in self.agents:
-            agent_state = state[:]
-            agent_reward = reward[:]
+        for intersection_name, agent in self.agents.items():
+            agent_state = agent.filter_agent_state_from_full_state(state)
+            # TODO filter agent reward from full reward
+            agent_reward = reward
             agent.train(agent_state, agent_reward)
