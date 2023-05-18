@@ -27,9 +27,6 @@ def print_step_status(step, state, action, next_state, reward):
     print(f'next state = {next_state}')
     print(f'reward     = {reward}')
     
-# TODO init replay memory 
-# https://colab.research.google.com/github/pytorch/tutorials/blob/gh-pages/_downloads/9da0471a9eeb2351a488cd4b44fc6bbf/reinforcement_q_learning.ipynb#scrollTo=UumN5HdU_EeE
-
 if __name__=="__main__":
     total_reward = 0
     reward = 0
@@ -44,6 +41,9 @@ if __name__=="__main__":
         print_step_number(step)
         next_state, reward, done, info = env.step(action)
         total_reward += reward
+        
+        # Store the transition in memory
+        smart_net.remember(state, action, next_state, reward)
         
         # Progress to the next step
         state = next_state

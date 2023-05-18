@@ -46,7 +46,15 @@ class SmartNet(BaseAgent):
         Distribute the state and rewards down to each agent to learn.
         """
         for intersection_name, agent in self.agents.items():
+            # agent_state = agent.filter_agent_state_from_full_state(state)
+            # agent_reward = agent.filter_agent_reward_from_full_reward(reward)
+            agent.train_policy_net()
+            agent.train_target_net()
+            
+    def remember(self, state, action, next_state, reward):
+        for intersection_name, agent in self.agents.items():
             agent_state = agent.filter_agent_state_from_full_state(state)
-            # TODO filter agent reward from full reward
-            agent_reward = reward
-            agent.train(agent_state, agent_reward)
+            agent_action = agent.filter_agent_action_from_full_action(action)
+            agent_next_state = agent.filter_agent_state_from_full_state(next_state)
+            agent_reward = agent.filter_agent_reward_from_full_reward(reward)
+            agent.memory.push(agent_state, agent_action, agent_next_state, agent_reward)
