@@ -39,6 +39,7 @@ class SmartAgent(BaseAgent):
         # Have 2 outputs - 1 for advance and 1 for stay. 
         
         # Init networks
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.policy_net = DQN(n_observations, n_actions).to(self.device)
         self.target_net = DQN(n_observations, n_actions).to(self.device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
@@ -48,7 +49,6 @@ class SmartAgent(BaseAgent):
         self.steps_done = 0
         self.criterion = torch.nn.SmoothL1Loss()
         
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
     def filter_agent_state_from_full_state(self, state):
         agent_state = {}
@@ -61,8 +61,10 @@ class SmartAgent(BaseAgent):
         return reward
 
     def filter_agent_action_from_full_action(self, action):
-        # TODO filter agent action from full action
-        return action
+        agent_action = {}
+        for k,v in self.action_space.items():
+            agent_action[k] = action[k]
+        return agent_action
     
     @staticmethod
     def dict_vals_to_tensor(dict):
@@ -70,46 +72,46 @@ class SmartAgent(BaseAgent):
         Creates and returns a pyTorch tensor made from the dictionary values given.
         """
         return torch.Tensor(list(dict.values()))
+    
+    @staticmethod
+    def ordered_dict_to_dict(order_dict):
+        dict = {}
+        for k,v in order_dict.items():
+            dict[k] = v
+        return dict
+    
+    def tuple_of_dicts_to_tensor(self, tuple_of_dicts):
+        vals_list = [list(d.values()) for d in tuple_of_dicts]
+        return torch.tensor(vals_list, device=self.device).squeeze()
+
         
     def sample_action(self, state):
         """
         Infer from DQN (policy net)
         The output of the DQN is a number between 0 (stay) and 1 (advance).
         """
-        # TODO transform return value to the dictionary struct needed
+        ADVANCE = 1
+        STAY = 0
+        THRESH = 0.5
+        
         sample = random.random()
         eps_thresh = EPS_END + ((EPS_START - EPS_END) * math.exp(-1 * self.steps_done / EPS_DECAY))
         self.steps_done += 1
         if sample > eps_thresh:
             # Use the policy net recommendation
             with torch.no_grad():
-                # t.max(1) will return the largest column value of each row.
-                # second column on max result is index of where max element was
-                # found, so we pick action with the larger expected reward.
-                return self.policy_net(state).max(1)[1].view(1, 1)
+                state_tensor = self.dict_vals_to_tensor(state)
+                net_output = self.policy_net(state_tensor)
+                # TODO If we want to support more than one action we will need to change this to max(1)[1]
+                should_advance = ADVANCE if net_output > THRESH else STAY
+                
+                # TODO find a better way to extract the action name
+                action_name = [s for s in self.action_space][0]
+                action = {action_name: should_advance}
+                return action
+
         # Explore a random action
-        return torch.tensor([[self.action_space.sample()]], device=self.device, dtype=torch.long)
-    
-    
-        # ADVANCE = 1
-        # STAY = 0
-        # THRESH = 0.5
-        
-        # # Convert state values to pyTorch tensor
-        # state_vals_tensor = self.dict_vals_to_tensor(state)
-        
-        # # Infer from policy net
-        # with torch.no_grad():
-        #     net_output = self.policy_net(state_vals_tensor).item()
-            
-        # # Choose action according to policy output
-        # should_advance = ADVANCE if net_output > THRESH else STAY
-        
-        # # Wrap action in a dictionary, with action name as key
-        # # TODO find a better way to extract the action name
-        # action_name = [s for s in self.action_space][0]
-        # action = {action_name: should_advance}
-        # return action
+        return self.ordered_dict_to_dict(self.action_space.sample())
     
     def train_policy_net(self):
         """
@@ -128,11 +130,12 @@ class SmartAgent(BaseAgent):
         
         # Compute a mask of non-final states and concatenate the batch elements
         # (a final state would've been the one after which simulation ended)
-        non_final_mask = torch.tensor(tuple(map(lambda s: s is not None, batch.next_state)), device=self.device, dtype=torch.bool)
-        non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
-        state_batch = torch.cat(batch.state)
-        action_batch = torch.cat(batch.action)
-        reward_batch = torch.cat(batch.reward)
+        # non_final_mask = torch.tensor(tuple(map(lambda s: s is not None, batch.next_state)), device=self.device, dtype=torch.bool)
+        # non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
+        state_batch = self.tuple_of_dicts_to_tensor(batch.state)
+        action_batch = self.tuple_of_dicts_to_tensor(batch.action)
+        reward_batch = torch.tensor(batch.reward)
+        next_state_batch = self.tuple_of_dicts_to_tensor(batch.next_state)
         
         # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
         # columns of actions taken. These are the actions which would've been taken
@@ -146,7 +149,7 @@ class SmartAgent(BaseAgent):
         # state value or 0 in case the state was final.
         next_state_values = torch.zeros(BATCH_SIZE, device=self.device)
         with torch.no_grad():
-            next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1)[0]
+            next_state_values[:] = self.target_net(next_state_batch)
         # Compute the expected Q values
         expected_state_action_values = (next_state_values * GAMMA) + reward_batch
         

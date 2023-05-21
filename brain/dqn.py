@@ -12,7 +12,7 @@ class DQN(nn.Module):
     def forward(self, x):
         """
         Called with either one element to determine next action, or a batch during optimization.
-        Returns tensor([[left0exp,right0exp]...]).
+        Returns tensor with 1 element
         """
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))

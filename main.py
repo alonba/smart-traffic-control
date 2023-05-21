@@ -2,7 +2,6 @@ from pyRDDLGym import RDDLEnv
 from pyRDDLGym import ExampleManager
 from brain.smart_net import SmartNet
 
-
 # Init problem
 domain = "problem/domain.rddl"
 instance = "problem/instance0.rddl"   # 2 nodes grid
@@ -32,7 +31,8 @@ if __name__=="__main__":
     reward = 0
     state = env.reset()
     for step in range(env.horizon):
-        env.render()
+        # Visualize
+        # env.render()
         
         # Select action
         action = smart_net.sample_action(state)
