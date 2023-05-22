@@ -1,6 +1,11 @@
+import datetime
+import pandas as pd
+
 from pyRDDLGym import RDDLEnv
 from pyRDDLGym import ExampleManager
 from brain.smart_net import SmartNet
+
+output_path = "output/"
 
 # Init problem
 domain = "problem/domain.rddl"
@@ -27,8 +32,8 @@ def print_step_status(step, state, action, next_state, reward):
     print(f'reward     = {reward}')
     
 if __name__=="__main__":
-    total_reward = 0
     reward = 0
+    reward_list = []
     state = env.reset()
     for step in range(env.horizon):
         # Visualize
@@ -40,7 +45,7 @@ if __name__=="__main__":
         # Make a step
         print_step_number(step)
         next_state, reward, done, info = env.step(action)
-        total_reward += reward
+        reward_list.append(reward)
         
         # Store the transition in memory
         smart_net.remember(state, action, next_state, reward)
@@ -54,5 +59,9 @@ if __name__=="__main__":
         if done:
             break
         
-    print(f"episode ended with reward {total_reward}")
+    reward_series = pd.Series(reward_list)
+    now = datetime.datetime.now().strftime("%Y-%b-%d_%H%M")
+    reward_series.plot().get_figure().savefig(f'{output_path}{now}_reward')
+    total_reward = reward_series.sum()
+    print(f"Episode ended with reward {total_reward}")
     env.close()

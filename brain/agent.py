@@ -80,9 +80,9 @@ class SmartAgent(BaseAgent):
             dict[k] = v
         return dict
     
-    def tuple_of_dicts_to_tensor(self, tuple_of_dicts):
+    def tuple_of_dicts_to_tensor(self, tuple_of_dicts, output_type):
         vals_list = [list(d.values()) for d in tuple_of_dicts]
-        return torch.tensor(vals_list, device=self.device).squeeze()
+        return torch.tensor(vals_list, device=self.device, dtype=output_type)
 
         
     def sample_action(self, state):
@@ -90,9 +90,11 @@ class SmartAgent(BaseAgent):
         Infer from DQN (policy net)
         The output of the DQN is a number between 0 (stay) and 1 (advance).
         """
-        ADVANCE = 1
-        STAY = 0
-        THRESH = 0.5
+        # For a net with 1 output we can use:
+        # ADVANCE = 1
+        # STAY = 0
+        # THRESH = 0.5
+        # should_advance = ADVANCE if net_output > THRESH else STAY
         
         sample = random.random()
         eps_thresh = EPS_END + ((EPS_START - EPS_END) * math.exp(-1 * self.steps_done / EPS_DECAY))
@@ -102,12 +104,11 @@ class SmartAgent(BaseAgent):
             with torch.no_grad():
                 state_tensor = self.dict_vals_to_tensor(state)
                 net_output = self.policy_net(state_tensor)
-                # TODO If we want to support more than one action we will need to change this to max(1)[1]
-                should_advance = ADVANCE if net_output > THRESH else STAY
+                chosen_action_index = net_output.argmax().item()
                 
                 # TODO find a better way to extract the action name
                 action_name = [s for s in self.action_space][0]
-                action = {action_name: should_advance}
+                action = {action_name: chosen_action_index}
                 return action
 
         # Explore a random action
@@ -132,10 +133,10 @@ class SmartAgent(BaseAgent):
         # (a final state would've been the one after which simulation ended)
         # non_final_mask = torch.tensor(tuple(map(lambda s: s is not None, batch.next_state)), device=self.device, dtype=torch.bool)
         # non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
-        state_batch = self.tuple_of_dicts_to_tensor(batch.state)
-        action_batch = self.tuple_of_dicts_to_tensor(batch.action)
-        reward_batch = torch.tensor(batch.reward)
-        next_state_batch = self.tuple_of_dicts_to_tensor(batch.next_state)
+        state_batch = self.tuple_of_dicts_to_tensor(batch.state, output_type=torch.float32)
+        action_batch = self.tuple_of_dicts_to_tensor(batch.action, output_type=torch.int64)
+        reward_batch = torch.tensor(batch.reward, device=self.device)
+        next_state_batch = self.tuple_of_dicts_to_tensor(batch.next_state, output_type=torch.float32)
         
         # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
         # columns of actions taken. These are the actions which would've been taken
@@ -143,13 +144,11 @@ class SmartAgent(BaseAgent):
         state_action_values = self.policy_net(state_batch).gather(1, action_batch)
         
         # Compute V(s_{t+1}) for all next states.
-        # Expected values of actions for non_final_next_states are computed based
-        # on the "older" target_net; selecting their best reward with max(1)[0].
-        # This is merged based on the mask, such that we'll have either the expected
-        # state value or 0 in case the state was final.
-        next_state_values = torch.zeros(BATCH_SIZE, device=self.device)
+        # Expected values of actions for next_states are computed based on the "older" target_net
+        # Selecting their best reward with max(1)[0].
+        # This is merged based on the mask, such that we'll have the expected state value
         with torch.no_grad():
-            next_state_values[:] = self.target_net(next_state_batch)
+            next_state_values = self.target_net(next_state_batch).max(1)[0]
         # Compute the expected Q values
         expected_state_action_values = (next_state_values * GAMMA) + reward_batch
         
