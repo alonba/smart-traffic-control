@@ -1,7 +1,7 @@
 import torch
 import random
 import math
-# import gym
+from gym.spaces import Dict
 from pyRDDLGym.Policies.Agents import BaseAgent
 from brain.dqn import DQN
 from brain.memory import ReplayMemory, Transition
@@ -26,11 +26,12 @@ class SmartAgent(BaseAgent):
     """
     A smart agent is a single traffic light.
     """
-    def __init__(self, action_space, observation_space):
+    def __init__(self, intersection_name: str, action_space, net_state):
+        self.name = intersection_name
         self.action_space = action_space
-        self.observation_space = observation_space
+        self.observation_space = Dict(SmartAgent.filter_agent_obs_from_net_state(self.name, net_state))
         
-        n_observations = len(observation_space.spaces)
+        n_observations = len(self.observation_space.spaces)
         n_actions = len(action_space)
         # Our policy net works a little different than the one in the CartPole example, as they need to choose between 2 different actions,
         # Where I need to choose only between advance or not. 
@@ -44,17 +45,45 @@ class SmartAgent(BaseAgent):
         self.target_net = DQN(n_observations, n_actions).to(self.device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
 
-        self.optimizer = torch.optim.AdamW(self.policy_net.parameters(), lr=LR, amsgrad=True)
+        self.optimizer = torch.optim.RMSprop(self.policy_net.parameters(), lr=LR)
         self.memory = ReplayMemory(10**4)
         self.steps_done = 0
         self.criterion = torch.nn.SmoothL1Loss()
+    
+    @staticmethod
+    def get_observations_from_state(state):
+        obs_set = {'signal', 'signal_t', 'q'}
+        not_obs = 'virtual-q'
         
+        observations = {}
+        # observations = Dict()
+        for k,v in state.items():
+            for obs in obs_set:
+                if obs in k and not_obs not in k:
+                    observations[k] = v
+
+        # TODO filter the q___
+        return observations
+    
+    # @staticmethod
+    # def filter_agent_obs_space_from_net_obs_space(agent_name: str, net_obs_space):
+    #     # Same as below, but {} instead of Dict()
+    #     # Maybe one function with {}, and wrap with Dict() if needed. It might work.
+            
+    @staticmethod
+    def filter_agent_obs_from_net_state(agent_name: str, net_state):
+        """
+        First, get only the signal, signal_t, and q from the complete state 
+        Then, get just the observations relevant to the specific intersection 
+        """
+        observations = SmartAgent.get_observations_from_state(net_state)
         
-    def filter_agent_state_from_full_state(self, state):
-        agent_state = {}
-        for k,v in self.observation_space.items():
-            agent_state[k] = state[k]
-        return agent_state
+        agent_obs = {}
+        # agent_obs = Dict()
+        for k,v in observations.items():
+            if agent_name in k:
+                agent_obs[k] = v
+        return agent_obs
 
     def filter_agent_reward_from_full_reward(self, reward):
         # TODO filter agent reward from full reward

@@ -14,7 +14,7 @@ env = RDDLEnv.RDDLEnv(domain=domain, instance=instance)
 num_of_nodes_in_grid = len(env.model.objects['intersection'])
 
 # Init agents (a net holds agents, one for each node)
-smart_net = SmartNet(nodes_num=num_of_nodes_in_grid, observation_space=env.observation_space, action_space=env.action_space)
+smart_net = SmartNet(nodes_num=num_of_nodes_in_grid, net_obs_space=env.observation_space, action_space=env.action_space)
 
 # Set visualizer
 viz = ExampleManager.GetEnvInfo('Traffic').get_visualizer()
