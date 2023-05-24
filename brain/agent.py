@@ -13,7 +13,7 @@ from brain.memory import ReplayMemory, Transition
 # EPS_DECAY controls the rate of exponential decay of epsilon, higher means a slower decay
 # TAU is the update rate of the target network
 # LR is the learning rate of the ``AdamW`` optimizer
-BATCH_SIZE = 128
+BATCH_SIZE = 64
 GAMMA = 0.99
 EPS_START = 0.9
 EPS_END = 0.05
@@ -41,7 +41,7 @@ class SmartAgent(BaseAgent):
         self.target_net.load_state_dict(self.policy_net.state_dict())
 
         self.optimizer = torch.optim.RMSprop(self.policy_net.parameters(), lr=LR)
-        self.memory = ReplayMemory(10**4)
+        self.memory = ReplayMemory(10**5)
         self.steps_done = 0
         self.criterion = torch.nn.SmoothL1Loss()
     
