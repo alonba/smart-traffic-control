@@ -12,7 +12,7 @@ from brain.memory import ReplayMemory, Transition
 # EPS_END is the final value of epsilon
 # EPS_DECAY controls the rate of exponential decay of epsilon, higher means a slower decay
 # TAU is the update rate of the target network
-# LR is the learning rate of the ``AdamW`` optimizer
+# LR is the learning rate of the optimizer
 BATCH_SIZE = 64
 GAMMA = 0.99
 EPS_START = 0.9
@@ -26,8 +26,8 @@ class SmartAgent(BaseAgent):
     """
     A smart agent is a single traffic light.
     """
-    def __init__(self, intersection_name: str, net_action_space, net_state):
-        self.name = intersection_name
+    def __init__(self, name: str, net_action_space, net_state):
+        self.name = name
         self.action_space = Dict(SmartAgent.filter_agent_actions_from_net_actions(self.name, net_action_space))
         self.observation_space = Dict(SmartAgent.filter_agent_obs_from_net_state(self.name, net_state))
         

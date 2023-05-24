@@ -54,7 +54,7 @@ if __name__=="__main__":
         state = next_state
         
         # Train the policies networks
-        smart_net.train(state, reward)
+        smart_net.train()
         
         if done:
             break
