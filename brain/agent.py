@@ -28,7 +28,7 @@ class SmartAgent(BaseAgent):
     """
     def __init__(self, name: str, net_action_space, net_state):
         self.name = name
-        self.action_space = Dict(SmartAgent.filter_agent_actions_from_net_actions(self.name, net_action_space))
+        self.action_space = Dict(SmartAgent.filter_agent_dict_from_net_dict(self.name, net_action_space))
         self.observation_space = Dict(SmartAgent.filter_agent_obs_from_net_state(self.name, net_state))
         
         n_observations = len(self.observation_space.spaces)
@@ -58,6 +58,14 @@ class SmartAgent(BaseAgent):
 
         # TODO filter the q___
         return observations
+
+    @staticmethod
+    def filter_agent_dict_from_net_dict(agent_name: str, net_dict):
+        agent_dict = {}
+        for k,v in net_dict.items():
+            if agent_name in k:
+                agent_dict[k] = v
+        return agent_dict
     
     @staticmethod
     def filter_agent_obs_from_net_state(agent_name: str, net_state):
@@ -66,20 +74,8 @@ class SmartAgent(BaseAgent):
         Then, get just the observations relevant to the specific intersection 
         """
         observations = SmartAgent.get_observations_from_state(net_state)
-        
-        agent_obs = {}
-        for k,v in observations.items():
-            if agent_name in k:
-                agent_obs[k] = v
+        agent_obs = SmartAgent.filter_agent_dict_from_net_dict(agent_name, observations)
         return agent_obs
-
-    @staticmethod
-    def filter_agent_actions_from_net_actions(agent_name: str, actions):
-        agent_actions = {}
-        for k,v in actions.items():
-            if agent_name in k:
-                agent_actions[k] = v
-        return agent_actions
 
     def filter_agent_reward_from_full_reward(self, reward):
         # TODO filter agent reward from full reward
