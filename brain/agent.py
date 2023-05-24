@@ -26,18 +26,13 @@ class SmartAgent(BaseAgent):
     """
     A smart agent is a single traffic light.
     """
-    def __init__(self, intersection_name: str, action_space, net_state):
+    def __init__(self, intersection_name: str, net_action_space, net_state):
         self.name = intersection_name
-        self.action_space = action_space
+        self.action_space = Dict(SmartAgent.filter_agent_actions_from_net_actions(self.name, net_action_space))
         self.observation_space = Dict(SmartAgent.filter_agent_obs_from_net_state(self.name, net_state))
         
         n_observations = len(self.observation_space.spaces)
-        n_actions = len(action_space)
-        # Our policy net works a little different than the one in the CartPole example, as they need to choose between 2 different actions,
-        # Where I need to choose only between advance or not. 
-        # 2 options how to do that:
-        # have 1 output, and if it's 0 then do not advance and if it's 1 - advance
-        # Have 2 outputs - 1 for advance and 1 for stay. 
+        n_actions = len(self.action_space)
         
         # Init networks
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -56,7 +51,6 @@ class SmartAgent(BaseAgent):
         not_obs = 'virtual-q'
         
         observations = {}
-        # observations = Dict()
         for k,v in state.items():
             for obs in obs_set:
                 if obs in k and not_obs not in k:
@@ -65,11 +59,6 @@ class SmartAgent(BaseAgent):
         # TODO filter the q___
         return observations
     
-    # @staticmethod
-    # def filter_agent_obs_space_from_net_obs_space(agent_name: str, net_obs_space):
-    #     # Same as below, but {} instead of Dict()
-    #     # Maybe one function with {}, and wrap with Dict() if needed. It might work.
-            
     @staticmethod
     def filter_agent_obs_from_net_state(agent_name: str, net_state):
         """
@@ -79,21 +68,22 @@ class SmartAgent(BaseAgent):
         observations = SmartAgent.get_observations_from_state(net_state)
         
         agent_obs = {}
-        # agent_obs = Dict()
         for k,v in observations.items():
             if agent_name in k:
                 agent_obs[k] = v
         return agent_obs
 
+    @staticmethod
+    def filter_agent_actions_from_net_actions(agent_name: str, actions):
+        agent_actions = {}
+        for k,v in actions.items():
+            if agent_name in k:
+                agent_actions[k] = v
+        return agent_actions
+
     def filter_agent_reward_from_full_reward(self, reward):
         # TODO filter agent reward from full reward
         return reward
-
-    def filter_agent_action_from_full_action(self, action):
-        agent_action = {}
-        for k,v in self.action_space.items():
-            agent_action[k] = action[k]
-        return agent_action
     
     @staticmethod
     def dict_vals_to_tensor(dict):
@@ -119,11 +109,6 @@ class SmartAgent(BaseAgent):
         Infer from DQN (policy net)
         The output of the DQN is a number between 0 (stay) and 1 (advance).
         """
-        # For a net with 1 output we can use:
-        # ADVANCE = 1
-        # STAY = 0
-        # THRESH = 0.5
-        # should_advance = ADVANCE if net_output > THRESH else STAY
         
         sample = random.random()
         eps_thresh = EPS_END + ((EPS_START - EPS_END) * math.exp(-1 * self.steps_done / EPS_DECAY))
