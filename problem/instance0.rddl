@@ -312,6 +312,6 @@ instance grid_1x2 {
     domain = BLX_model;
     non-fluents = grid_1x2;
     max-nondef-actions = 2;
-    horizon = 200;
+    horizon = 400;
     discount = 1.0;
 }

@@ -15,9 +15,7 @@ from brain.memory import ReplayMemory, Transition
 # LR is the learning rate of the optimizer
 BATCH_SIZE = 64
 GAMMA = 0.99
-EPS_START = 0.9
-EPS_END = 0.05
-EPS_DECAY = 1000
+EXPLORE_CHANCE = 0.1
 TAU = 0.005
 LR = 1e-4
 
@@ -42,7 +40,6 @@ class SmartAgent(BaseAgent):
 
         self.optimizer = torch.optim.RMSprop(self.policy_net.parameters(), lr=LR)
         self.memory = ReplayMemory(10**5)
-        self.steps_done = 0
         self.criterion = torch.nn.SmoothL1Loss()
     
     @staticmethod
@@ -77,8 +74,19 @@ class SmartAgent(BaseAgent):
         agent_obs = SmartAgent.filter_agent_dict_from_net_dict(agent_name, observations)
         return agent_obs
 
-    def filter_agent_reward_from_full_reward(self, reward):
-        # TODO filter agent reward from full reward
+    def calculate_agent_reward_from_state(self, state):
+        """
+        Gets the net state, and calculates the reward for a specific agent.
+        The reward is the sum of the Nc in the 4 lanes coming in towards an intersection.
+        """
+        cars_number = 'Nc'
+        outward = f'{self.name}-'
+        incoming = f'-{self.name}'
+        
+        reward = 0
+        for k,v in state.items():
+            if cars_number in k and outward not in k and incoming in k:
+                reward -= v
         return reward
     
     @staticmethod
@@ -107,9 +115,7 @@ class SmartAgent(BaseAgent):
         """
         
         sample = random.random()
-        eps_thresh = EPS_END + ((EPS_START - EPS_END) * math.exp(-1 * self.steps_done / EPS_DECAY))
-        self.steps_done += 1
-        if sample > eps_thresh:
+        if sample > EXPLORE_CHANCE:
             # Use the policy net recommendation
             with torch.no_grad():
                 state_tensor = self.dict_vals_to_tensor(state)
@@ -139,10 +145,6 @@ class SmartAgent(BaseAgent):
         # to Transition of batch-arrays.
         batch = Transition(*zip(*transitions))
         
-        # Compute a mask of non-final states and concatenate the batch elements
-        # (a final state would've been the one after which simulation ended)
-        # non_final_mask = torch.tensor(tuple(map(lambda s: s is not None, batch.next_state)), device=self.device, dtype=torch.bool)
-        # non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
         state_batch = self.tuple_of_dicts_to_tensor(batch.state, output_type=torch.float32)
         action_batch = self.tuple_of_dicts_to_tensor(batch.action, output_type=torch.int64)
         reward_batch = torch.tensor(batch.reward, device=self.device)
