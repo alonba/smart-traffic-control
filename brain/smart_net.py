@@ -1,10 +1,11 @@
+from gym.spaces  import Dict
 import pandas as pd
 from pyRDDLGym.Policies.Agents import BaseAgent
 from brain.agent import SmartAgent
 
 # TODO add types to functions
 class SmartNet(BaseAgent):
-    def __init__(self, nodes_num, net_obs_space, net_action_space):
+    def __init__(self, nodes_num: int, net_obs_space: Dict, net_action_space: Dict) -> None:
         self.action_space = net_action_space
         
         agents = []
@@ -14,7 +15,7 @@ class SmartNet(BaseAgent):
             
         self.agents = agents
         
-    def sample_action(self, state):
+    def sample_action(self, state: dict) -> dict:
         """
         Get the actions for each node (agent).
         Return a dictionary with all the chosen actions.
@@ -26,7 +27,7 @@ class SmartNet(BaseAgent):
         
         return actions
     
-    def train(self):
+    def train(self) -> None:
         for agent in self.agents:
             agent.train_policy_net()
             agent.train_target_net()
@@ -43,7 +44,6 @@ class SmartNet(BaseAgent):
         """
         Gets a state, returns a df with the calculated rewards per agent.
         """
-        # TODO test
         rewards = {}
         for agent in self.agents:
             rewards[agent.name] = agent.calculate_agent_reward_from_state(state)

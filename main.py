@@ -68,7 +68,7 @@ if __name__=="__main__":
             next_state, centralized_reward, done, info = env.step(action)
             
             # Calculate rewards
-            # TODO Why is the centralized reward different from summed computed rewards
+            # TODO Why is the centralized reward different than summed computed rewards
             # If so - replace the centralized_reward with rewards.sum()
             rewards = smart_net.compute_rewards_from_state(next_state)
             total_reward += centralized_reward

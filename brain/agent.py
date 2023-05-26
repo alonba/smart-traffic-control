@@ -1,16 +1,13 @@
 import torch
 import random
-import math
 from gym.spaces import Dict
+from collections import OrderedDict
 from pyRDDLGym.Policies.Agents import BaseAgent
 from brain.dqn import DQN
 from brain.memory import ReplayMemory, Transition
 
 # BATCH_SIZE is the number of transitions sampled from the replay buffer
 # GAMMA is the discount factor as mentioned in the previous section
-# EPS_START is the starting value of epsilon
-# EPS_END is the final value of epsilon
-# EPS_DECAY controls the rate of exponential decay of epsilon, higher means a slower decay
 # TAU is the update rate of the target network
 # LR is the learning rate of the optimizer
 BATCH_SIZE = 64
@@ -24,7 +21,7 @@ class SmartAgent(BaseAgent):
     """
     A smart agent is a single traffic light.
     """
-    def __init__(self, name: str, net_action_space, net_state):
+    def __init__(self, name: str, net_action_space: Dict, net_state: Dict) -> None:
         self.name = name
         self.action_space = Dict(SmartAgent.filter_agent_dict_from_net_dict(self.name, net_action_space))
         self.observation_space = Dict(SmartAgent.filter_agent_obs_from_net_state(self.name, net_state))
@@ -43,7 +40,7 @@ class SmartAgent(BaseAgent):
         self.criterion = torch.nn.SmoothL1Loss()
     
     @staticmethod
-    def get_observations_from_state(state):
+    def get_observations_from_state(state: Dict | dict) -> dict:
         obs_set = {'signal', 'signal_t', 'q'}
         not_obs = 'virtual-q'
         
@@ -57,7 +54,7 @@ class SmartAgent(BaseAgent):
         return observations
 
     @staticmethod
-    def filter_agent_dict_from_net_dict(agent_name: str, net_dict):
+    def filter_agent_dict_from_net_dict(agent_name: str, net_dict: Dict | dict) -> dict:
         agent_dict = {}
         for k,v in net_dict.items():
             if agent_name in k:
@@ -65,7 +62,7 @@ class SmartAgent(BaseAgent):
         return agent_dict
     
     @staticmethod
-    def filter_agent_obs_from_net_state(agent_name: str, net_state):
+    def filter_agent_obs_from_net_state(agent_name: str, net_state: Dict | dict) -> dict:
         """
         First, get only the signal, signal_t, and q from the complete state 
         Then, get just the observations relevant to the specific intersection 
@@ -74,7 +71,7 @@ class SmartAgent(BaseAgent):
         agent_obs = SmartAgent.filter_agent_dict_from_net_dict(agent_name, observations)
         return agent_obs
 
-    def calculate_agent_reward_from_state(self, state):
+    def calculate_agent_reward_from_state(self, state: dict) -> float:
         """
         Gets the net state, and calculates the reward for a specific agent.
         The reward is the sum of the Nc in the 4 lanes coming in towards an intersection.
@@ -90,25 +87,25 @@ class SmartAgent(BaseAgent):
         return reward
     
     @staticmethod
-    def dict_vals_to_tensor(dict):
+    def dict_vals_to_tensor(dict: dict) -> torch.Tensor:
         """
         Creates and returns a pyTorch tensor made from the dictionary values given.
         """
         return torch.Tensor(list(dict.values()))
     
     @staticmethod
-    def ordered_dict_to_dict(order_dict):
+    def ordered_dict_to_dict(order_dict: OrderedDict) -> dict:
         dict = {}
         for k,v in order_dict.items():
             dict[k] = v
         return dict
     
-    def tuple_of_dicts_to_tensor(self, tuple_of_dicts, output_type):
+    def tuple_of_dicts_to_tensor(self, tuple_of_dicts: tuple, output_type: torch.dtype) -> torch.Tensor:
         vals_list = [list(d.values()) for d in tuple_of_dicts]
         return torch.tensor(vals_list, device=self.device, dtype=output_type)
 
         
-    def sample_action(self, state):
+    def sample_action(self, state: dict) -> dict:
         """
         Infer from DQN (policy net)
         The output of the DQN is a number between 0 (stay) and 1 (advance).
@@ -130,7 +127,7 @@ class SmartAgent(BaseAgent):
         # Explore a random action
         return self.ordered_dict_to_dict(self.action_space.sample())
     
-    def train_policy_net(self):
+    def train_policy_net(self) -> None:
         """
         Trains the policy net using data from the replay memory
         Credit to:
@@ -175,7 +172,7 @@ class SmartAgent(BaseAgent):
         torch.nn.utils.clip_grad_value_(self.policy_net.parameters(), 100)
         self.optimizer.step()
         
-    def train_target_net(self):
+    def train_target_net(self) -> None:
         """
         Soft update of the target network's weights
         θ′ ← τ θ + (1 −τ )θ′
