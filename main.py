@@ -32,6 +32,7 @@ def now() -> str:
     return datetime.datetime.now().strftime("%Y-%b-%d_%H%M")
 
 def plot_and_save_rewards_per_episode(reward_list: list) -> None:
+    # TODO add axes labels
     reward_series = pd.Series(reward_list)
     reward_series.plot().get_figure().savefig(f'{output_path}{now()}_reward')
     reward_series.plot()

@@ -6,6 +6,7 @@ from brain.agent import SmartAgent
 # TODO add types to functions
 class SmartNet(BaseAgent):
     def __init__(self, nodes_num: int, net_obs_space: Dict, net_action_space: Dict) -> None:
+        # TODO maybe remove
         self.action_space = net_action_space
         
         agents = []
