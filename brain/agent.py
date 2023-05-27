@@ -59,8 +59,12 @@ class SmartAgent(BaseAgent):
         
         observations = {}
         for k,v in net_state.items():
-            if (signal_obs in k and agent_name in k) or re.search(q_regex, k):
+            if signal_obs in k and agent_name in k:    # If signal / signal_t AND relevant for agent.
                 observations[k] = v
+            elif re.search(q_regex, k):       # If queue
+                prefix, from_1, to_1, from_2, to_2 = k.split('-')
+                if from_1 != to_2:
+                    observations[k] = v
 
         return observations
         
@@ -69,13 +73,10 @@ class SmartAgent(BaseAgent):
         Gets the net state, and calculates the reward for a specific agent.
         The reward is the sum of the Nc in the 4 lanes coming in towards an intersection.
         """
-        cars_number = 'Nc'
-        outward = f'{self.name}-'
-        incoming = f'-{self.name}'
-        
         reward = 0
+        cars_number_regex = f"Nc___l-..-{self.name}"
         for k,v in state.items():
-            if cars_number in k and outward not in k and incoming in k:
+            if re.search(cars_number_regex, k):
                 reward -= v
         return reward
     

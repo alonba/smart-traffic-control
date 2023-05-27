@@ -58,7 +58,7 @@ if __name__=="__main__":
         # Run simulation
         for step in range(env.horizon):
             # Visualize
-            # env.render()
+            env.render()
             
             # Select action
             action = smart_net.sample_action(state)
@@ -79,11 +79,10 @@ if __name__=="__main__":
             # Progress to the next step
             state = next_state
             
-            if done:
-                break   # Shouldn't get here
-        
         # Train the policies networks
+        print("Finished episode. Starting training phase.")
         for update in range(UPDATES):
+            print(f"Update = {update}")
             smart_net.train()
             
         # Finish episode
