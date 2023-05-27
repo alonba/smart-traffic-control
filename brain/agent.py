@@ -1,3 +1,4 @@
+import re
 import torch
 import random
 from gym.spaces import Dict
@@ -40,20 +41,6 @@ class SmartAgent(BaseAgent):
         self.criterion = torch.nn.SmoothL1Loss()
     
     @staticmethod
-    def get_observations_from_state(state: Dict | dict) -> dict:
-        obs_set = {'signal', 'signal_t', 'q'}
-        not_obs = 'virtual-q'
-        
-        observations = {}
-        for k,v in state.items():
-            for obs in obs_set:
-                if obs in k and not_obs not in k:
-                    observations[k] = v
-
-        # TODO filter the q___
-        return observations
-
-    @staticmethod
     def filter_agent_dict_from_net_dict(agent_name: str, net_dict: Dict | dict) -> dict:
         agent_dict = {}
         for k,v in net_dict.items():
@@ -64,13 +51,19 @@ class SmartAgent(BaseAgent):
     @staticmethod
     def filter_agent_obs_from_net_state(agent_name: str, net_state: Dict | dict) -> dict:
         """
-        First, get only the signal, signal_t, and q from the complete state 
-        Then, get just the observations relevant to the specific intersection 
+        Get only the 'signal', 'signal_t' and 'q' fluents relevant to the specific agent.
+        The q fluents relevant are queues incoming to intersection, and going from it.
         """
-        observations = SmartAgent.get_observations_from_state(net_state)
-        agent_obs = SmartAgent.filter_agent_dict_from_net_dict(agent_name, observations)
-        return agent_obs
+        signal_obs = 'signal'
+        q_regex = f"^q___l-..-{agent_name}__l-{agent_name}-.."
+        
+        observations = {}
+        for k,v in net_state.items():
+            if (signal_obs in k and agent_name in k) or re.search(q_regex, k):
+                observations[k] = v
 
+        return observations
+        
     def calculate_agent_reward_from_state(self, state: dict) -> float:
         """
         Gets the net state, and calculates the reward for a specific agent.
