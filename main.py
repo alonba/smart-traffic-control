@@ -7,7 +7,7 @@ from pyRDDLGym import ExampleManager
 from brain.smart_net import SmartNet
 
 output_path = "output/"
-EPISODES_NUM = 20
+EPISODES_NUM = 2000
 UPDATES = 100
 
 # Init problem
