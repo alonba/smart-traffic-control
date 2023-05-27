@@ -23,26 +23,20 @@ smart_net = SmartNet(nodes_num=num_of_nodes_in_grid, net_obs_space=env.observati
 viz = ExampleManager.GetEnvInfo('Traffic').get_visualizer()
 env.set_visualizer(viz)
 
-def print_step_number(step):
-    print(f'step = {step}')
-    
-def print_step_status(step, state, action, next_state, reward):
-    print()
-    print(f'step = {step}')
-    print(f'state      = {state}')
-    print(f'action     = {action}')
-    print(f'next state = {next_state}')
-    print(f'reward     = {reward}')
+def print_progress(step: int, skip: int, name: str) -> None:
+    real_step = step + 1
+    if real_step % skip == 0:
+        print(f'{name} = {real_step}')
     
 def now() -> str:
     return datetime.datetime.now().strftime("%Y-%b-%d_%H%M")
 
-def plot_and_save_rewards_per_episode(reward_list: list):
+def plot_and_save_rewards_per_episode(reward_list: list) -> None:
     reward_series = pd.Series(reward_list)
     reward_series.plot().get_figure().savefig(f'{output_path}{now()}_reward')
     reward_series.plot()
     
-def save_to_pickle(data, filename):
+def save_to_pickle(data, filename: str) -> None:
     filename = filename + '.pickle'
     with open(filename, 'wb') as handle:
         pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -64,14 +58,13 @@ if __name__=="__main__":
             action = smart_net.sample_action(state)
             
             # Make a step
-            print_step_number(step)
+            print_progress(step, 50, 'Step')
             next_state, centralized_reward, done, info = env.step(action)
             
             # Calculate rewards
             # TODO Why is the centralized reward different than summed computed rewards
-            # If so - replace the centralized_reward with rewards.sum()
             rewards = smart_net.compute_rewards_from_state(next_state)
-            total_reward += centralized_reward
+            total_reward += rewards.sum()
             
             # Store the transition in memory
             smart_net.remember(state, action, next_state, rewards)
@@ -80,14 +73,13 @@ if __name__=="__main__":
             state = next_state
             
         # Train the policies networks
-        print("Finished episode. Starting training phase.")
         for update in range(UPDATES):
-            print(f"Update = {update}")
+            print_progress(update, 20, 'Update')
             smart_net.train()
             
         # Finish episode
         reward_list.append(total_reward)
-        print(f"Episode ended with reward {total_reward}")
+        print(f"Episode {episode + 1} ended with reward {total_reward}")
         env.close()
     
     # Plot and save rewards
