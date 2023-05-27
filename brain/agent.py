@@ -41,7 +41,7 @@ class SmartAgent(BaseAgent):
         self.criterion = torch.nn.SmoothL1Loss()
     
     @staticmethod
-    def filter_agent_dict_from_net_dict(agent_name: str, net_dict: Dict | dict) -> dict:
+    def filter_agent_dict_from_net_dict(agent_name: str, net_dict) -> dict:
         agent_dict = {}
         for k,v in net_dict.items():
             if agent_name in k:
@@ -49,7 +49,7 @@ class SmartAgent(BaseAgent):
         return agent_dict
     
     @staticmethod
-    def filter_agent_obs_from_net_state(agent_name: str, net_state: Dict | dict) -> dict:
+    def filter_agent_obs_from_net_state(agent_name: str, net_state) -> dict:
         """
         Get only the 'signal', 'signal_t' and 'q' fluents relevant to the specific agent.
         The q fluents relevant are queues incoming to intersection, and going from it.

@@ -23,7 +23,8 @@ class SmartNet(BaseAgent):
         actions = {}
         for agent in self.agents:
             agent_obs = SmartAgent.filter_agent_obs_from_net_state(agent.name, state)
-            actions |= agent.sample_action(agent_obs)
+            actions.update(agent.sample_action(agent_obs))
+            # actions |= agent.sample_action(agent_obs)
         
         return actions
     
