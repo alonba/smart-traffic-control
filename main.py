@@ -7,7 +7,7 @@ from pyRDDLGym import ExampleManager
 from brain.smart_net import SmartNet
 
 output_path = "output/"
-EPISODES_NUM = 2000
+EPISODES_NUM = 20
 UPDATES = 100
 
 # Init problem
@@ -58,7 +58,7 @@ if __name__=="__main__":
         # Run simulation
         for step in range(env.horizon):
             # Visualize
-            env.render()
+            # env.render()
             
             # Select action
             action = smart_net.sample_action(state)
@@ -93,3 +93,5 @@ if __name__=="__main__":
     # Plot and save rewards
     plot_and_save_rewards_per_episode(reward_list)
     save_to_pickle(smart_net, f'output/{now()}_smart_net')
+    
+    end_of_file = True
