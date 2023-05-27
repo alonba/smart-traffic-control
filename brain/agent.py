@@ -80,11 +80,11 @@ class SmartAgent(BaseAgent):
                 reward -= v
         return reward
     
-    def dict_vals_to_tensor(self, dict: dict) -> torch.Tensor:
+    def dict_vals_to_tensor(self, dict: dict) -> torch.tensor:
         """
         Creates and returns a pyTorch tensor made from the dictionary values given.
         """
-        return torch.Tensor(list(dict.values()), device=self.device)
+        return torch.tensor(list(dict.values()), device=self.device)
     
     @staticmethod
     def ordered_dict_to_dict(order_dict: OrderedDict) -> dict:
@@ -93,7 +93,7 @@ class SmartAgent(BaseAgent):
             dict[k] = v
         return dict
     
-    def tuple_of_dicts_to_tensor(self, tuple_of_dicts: tuple, output_type: torch.dtype) -> torch.Tensor:
+    def tuple_of_dicts_to_tensor(self, tuple_of_dicts: tuple, output_type: torch.dtype) -> torch.tensor:
         vals_list = [list(d.values()) for d in tuple_of_dicts]
         return torch.tensor(vals_list, device=self.device, dtype=output_type)
 
