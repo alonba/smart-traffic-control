@@ -84,7 +84,7 @@ class SmartAgent(BaseAgent):
         """
         Creates and returns a pyTorch tensor made from the dictionary values given.
         """
-        return torch.tensor(list(dict.values()), device=self.device)
+        return torch.tensor(list(dict.values()), device=self.device).float()
     
     @staticmethod
     def ordered_dict_to_dict(order_dict: OrderedDict) -> dict:
