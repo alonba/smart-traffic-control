@@ -3,17 +3,12 @@ import pandas as pd
 from pyRDDLGym.Policies.Agents import BaseAgent
 from brain.agent import SmartAgent
 
-# TODO add types to functions
 class SmartNet(BaseAgent):
     def __init__(self, nodes_num: int, net_obs_space: Dict, net_action_space: Dict) -> None:
-        # TODO maybe remove
-        self.action_space = net_action_space
-        
         agents = []
         for i in range(nodes_num):
             agent = SmartAgent(f"i{i}", net_action_space, net_obs_space)
             agents.append(agent)
-            
         self.agents = agents
         
     def sample_action(self, state: dict) -> dict:

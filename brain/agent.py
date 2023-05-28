@@ -17,7 +17,7 @@ EXPLORE_CHANCE = 0.1
 TAU = 0.005
 LR = 1e-4
 
-
+# TODO create some artificial data to check if the algorithm can learn. meaning insert the made up data instead of the real data from the env.
 class SmartAgent(BaseAgent):
     """
     A smart agent is a single traffic light.

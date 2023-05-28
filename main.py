@@ -6,9 +6,10 @@ import pandas as pd
 from pyRDDLGym import RDDLEnv
 from pyRDDLGym import ExampleManager
 from brain.smart_net import SmartNet
+from brain.smart_writer import SmartWriter
 
 start_time = datetime.datetime.now()
-EPISODES_NUM = 2000
+EPISODES_NUM = 10
 UPDATES = 100
 
 # Init problem
@@ -23,6 +24,9 @@ smart_net = SmartNet(nodes_num=num_of_nodes_in_grid, net_obs_space=env.observati
 # Set visualizer
 viz = ExampleManager.GetEnvInfo('Traffic').get_visualizer()
 env.set_visualizer(viz)
+
+# Initialize the SummaryWriter for TensorBoard. Its output will be written to ./runs/
+writer = SmartWriter()
 
 def print_progress(step: int, skip: int, name: str) -> None:
     real_step = step + 1
@@ -102,6 +106,8 @@ if __name__=="__main__":
             smart_net.train()
             
         # Finish episode
+        writer.add_scalar("Reward", total_reward, episode)
+        writer.weight_histograms(smart_net, episode)
         reward_list.append(total_reward)
         print(f"Episode {episode + 1} ended with reward {total_reward}")
         env.close()
@@ -111,5 +117,8 @@ if __name__=="__main__":
     os.mkdir(output_dir)
     save_rewards_per_episode_plot(reward_list, output_dir)
     save_to_pickle(smart_net, output_dir + '/smart_net')
+    
+    # Save graphs of models to TensorBoard
+    writer.graphs(smart_net, state)
     
     end_of_file = True
