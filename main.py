@@ -1,3 +1,4 @@
+import os
 import datetime
 import pickle
 import pandas as pd
@@ -6,8 +7,8 @@ from pyRDDLGym import RDDLEnv
 from pyRDDLGym import ExampleManager
 from brain.smart_net import SmartNet
 
-output_path = "output/"
-EPISODES_NUM = 2000
+start_time = datetime.datetime.now()
+EPISODES_NUM = 2
 UPDATES = 100
 
 # Init problem
@@ -27,20 +28,42 @@ def print_progress(step: int, skip: int, name: str) -> None:
     real_step = step + 1
     if real_step % skip == 0:
         print(f'{name} = {real_step}')
+
+def strfdelta(tdelta: datetime.timedelta, fmt: str) -> str:
+    d = {"days": tdelta.days}
+    d["hours"], rem = divmod(tdelta.seconds, 3600)
+    d["minutes"], d["seconds"] = divmod(rem, 60)
+    return fmt.format(**d)
     
 def now() -> str:
-    return datetime.datetime.now().strftime("%Y-%b-%d_%H%M")
+    return datetime.datetime.now().strftime("%b-%d-%H%M")
 
-def plot_and_save_rewards_per_episode(reward_list: list) -> None:
-    # TODO add axes labels
-    reward_series = pd.Series(reward_list)
-    reward_series.plot().get_figure().savefig(f'{output_path}{now()}_reward')
-    reward_series.plot()
+def elapsed_time(start_time: datetime.datetime) -> str:
+    elapsed = datetime.datetime.now() - start_time
+    return strfdelta(elapsed, "{hours}H-{minutes}M-{seconds}S")
     
 def save_to_pickle(data, filename: str) -> None:
     filename = filename + '.pickle'
     with open(filename, 'wb') as handle:
         pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        
+def load_from_pickle(filename: str):
+    filename = str(filename) + '.pickle'
+    with open(filename, 'rb') as handle:
+        res = pickle.load(handle)
+    return res
+
+def save_rewards_per_episode_plot(rewards: list, path: str) -> None:
+    """
+    Saves 2 files -
+        1. Rewards list as pickle
+        2. PNG image of the figure
+    """
+    save_to_pickle(rewards, path + '/rewards_list')
+    
+    reward_series = pd.Series(rewards)
+    ax = reward_series.plot(xlabel='Episode', ylabel='Reward', title='Total reward per episode')
+    ax.get_figure().savefig(path + '/reward_per_episode', bbox_inches='tight')
     
     
 if __name__=="__main__":
@@ -84,7 +107,9 @@ if __name__=="__main__":
         env.close()
     
     # Plot and save rewards
-    plot_and_save_rewards_per_episode(reward_list)
-    save_to_pickle(smart_net, f'output/{now()}_smart_net')
+    output_dir = "output/" + now() + '_ET-' + elapsed_time(start_time)
+    os.mkdir(output_dir)
+    save_rewards_per_episode_plot(reward_list, output_dir)
+    save_to_pickle(smart_net, output_dir + '/smart_net')
     
     end_of_file = True
