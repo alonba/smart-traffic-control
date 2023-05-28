@@ -13,7 +13,7 @@ from brain.memory import ReplayMemory, Transition
 # LR is the learning rate of the optimizer
 BATCH_SIZE = 64
 GAMMA = 0.99
-EXPLORE_CHANCE = 0.3
+EXPLORE_CHANCE = 0.1
 TAU = 0.005
 LR = 1e-4
 

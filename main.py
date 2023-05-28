@@ -8,7 +8,7 @@ from pyRDDLGym import ExampleManager
 from brain.smart_net import SmartNet
 
 start_time = datetime.datetime.now()
-EPISODES_NUM = 2
+EPISODES_NUM = 2000
 UPDATES = 100
 
 # Init problem
