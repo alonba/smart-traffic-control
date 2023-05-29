@@ -12,12 +12,11 @@ from brain.memory import ReplayMemory, Transition
 # TAU is the update rate of the target network
 # LR is the learning rate of the optimizer
 BATCH_SIZE = 64
-GAMMA = 0.99
+GAMMA = 0.1
 EXPLORE_CHANCE = 0.1
 TAU = 0.005
 LR = 1e-4
 
-# TODO create some artificial data to check if the algorithm can learn. meaning insert the made up data instead of the real data from the env.
 class SmartAgent(BaseAgent):
     """
     A smart agent is a single traffic light.
@@ -142,12 +141,12 @@ class SmartAgent(BaseAgent):
         # Compute Q(s_t, a) - the policy_net computes Q(s_t).
         # Then, we ues gather() to select the columns of actions taken.
         # These are the actions which would've been taken for each batch state according to policy_net
+        # That is the reward the policy net expects to receive by choosing these actions with these states.
         state_action_values = self.policy_net(state_batch).gather(1, action_batch)
         
         # Compute V(s_{t+1}) for all next states.
         # Expected values of actions for next_states are computed based on the "older" target_net
         # Selecting their best reward with max(1)[0].
-        # This is merged based on the mask, such that we'll have the expected state value
         with torch.no_grad():
             next_state_values = self.target_net(next_state_batch).max(1)[0]
         # Compute the expected Q values

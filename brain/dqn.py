@@ -4,10 +4,14 @@ import torch.nn.functional as F
 class DQN(nn.Module):
 
     def __init__(self, n_observations, n_actions):
+        """
+        Q(S_t, a) -> R
+        The 2 outputs represent Q(s,stay) and Q(s,advance) where s is the input (state) to the network
+        """
         super(DQN, self).__init__()
         self.layer1 = nn.Linear(n_observations, 128)
         self.layer2 = nn.Linear(128, 128)
-        self.layer3 = nn.Linear(128, n_actions * 2)   # The 2 is for dividing the stay and advance to 2 different actions
+        self.layer3 = nn.Linear(128, n_actions * 2)
         
     def forward(self, x):
         """
