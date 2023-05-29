@@ -34,7 +34,7 @@ class SmartNet(BaseAgent):
             agent.train_policy_net(writer, episode)
             if is_soft:
                 agent.train_target_net_soft()
-            elif update_idx == (updates_num - 1):   # Hard update once every 100 updates
+            elif update_idx == (updates_num - 1):   # Hard update once every N updates
                 agent.train_target_net_hard()
             
     def remember(self, net_state: dict, net_action: dict, net_next_state: dict, rewards: pd.Series) -> None:

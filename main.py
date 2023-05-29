@@ -74,7 +74,7 @@ if __name__=="__main__":
     reward_list = []
     for episode in range(EPISODES_NUM):
         # Initialize env
-        total_reward = 0
+        total_rewards = 0
         state = env.reset()
         
         # Run simulation
@@ -92,7 +92,7 @@ if __name__=="__main__":
             # Calculate rewards
             # TODO Why is the centralized reward different than summed computed rewards
             rewards = smart_net.compute_rewards_from_state(next_state)
-            total_reward += rewards.sum()
+            total_rewards += rewards
             
             # Store the transition in memory
             smart_net.remember(state, action, next_state, rewards)
@@ -106,10 +106,11 @@ if __name__=="__main__":
             smart_net.train(writer, episode, IS_SOFT, update, UPDATES)
             
         # Finish episode
-        writer.add_scalar("Reward", total_reward, episode)
+        writer.rewards(smart_net, total_rewards, episode)
         writer.weight_histograms(smart_net, episode)
-        reward_list.append(total_reward)
-        print(f"Episode {episode + 1} ended with reward {total_reward}")
+        episode_total_reward = total_rewards.sum()
+        reward_list.append(episode_total_reward)
+        print(f"Episode {episode + 1} ended with reward {episode_total_reward}")
         env.close()
     
     # Plot and save rewards

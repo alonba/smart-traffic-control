@@ -155,7 +155,7 @@ class SmartAgent(BaseAgent):
         
         # Compute Huber loss
         loss = self.criterion(state_action_values, expected_state_action_values.unsqueeze(1))
-        writer.add_scalar(f"{self.name}_Loss", loss, episode)
+        writer.add_scalar(f"{self.name}/Loss", loss, episode)
         
         # Optimize the model
         self.optimizer.zero_grad()

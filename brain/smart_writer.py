@@ -20,12 +20,23 @@ class SmartWriter(SummaryWriter):
                 
                 # Iterate over all model layers
                 for layer_number, param in enumerate(model.parameters()):
-                    layer_name = f'{agent.name}_{model_name}_layer_{layer_number}'
+                    layer_name = f'{agent.name}/{model_name}/layer_{layer_number}'
                     self.weight_histograms_linear(step, param, layer_name)
                     
     def graphs(self, smart_net, state):
+        """
+        Writes the nets structure to TensorBoard
+        """
         for agent in smart_net.agents:
             agent_obs = agent.filter_agent_obs_from_net_state(agent.name, state)
             agent_obs_tensor = agent.dict_vals_to_tensor(agent_obs)
             self.add_graph(agent.policy_net, agent_obs_tensor)
             self.add_graph(agent.target_net, agent_obs_tensor)
+            
+    def rewards(self, smart_net, rewards, episode):
+        """
+        Writes the total and individual rewards to TensorBoard
+        """
+        self.add_scalar("TotalReward", rewards.sum(), episode)
+        for agent in smart_net.agents:
+            self.add_scalar(f"{agent.name}/Reward", rewards.loc[agent.name], episode)
