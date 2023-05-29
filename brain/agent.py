@@ -100,8 +100,7 @@ class SmartAgent(BaseAgent):
         
     def sample_action(self, state: dict) -> dict:
         """
-        Infer from DQN (policy net)
-        The output of the DQN is a number between 0 (stay) and 1 (advance).
+        Infer from DQN (policy net), or explore the possible actions, with a pre-set probability.
         """
         
         sample = random.random()
@@ -112,7 +111,6 @@ class SmartAgent(BaseAgent):
                 net_output = self.policy_net(state_tensor)
                 chosen_action_index = net_output.argmax().item()
                 
-                # TODO find a better way to extract the action name
                 action_name = [s for s in self.action_space][0]
                 action = {action_name: chosen_action_index}
                 return action
@@ -136,13 +134,13 @@ class SmartAgent(BaseAgent):
         batch = Transition(*zip(*transitions))
         
         state_batch = self.tuple_of_dicts_to_tensor(batch.state, output_type=torch.float32)
-        action_batch = self.tuple_of_dicts_to_tensor(batch.action, output_type=torch.int64)
+        action_batch = self.tuple_of_dicts_to_tensor(batch.action, output_type=torch.int64)  # TODO check why the actions are almost always 0. does it happen later also? or just in the first episode?
         reward_batch = torch.tensor(batch.reward, device=self.device)
         next_state_batch = self.tuple_of_dicts_to_tensor(batch.next_state, output_type=torch.float32)
         
-        # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
-        # columns of actions taken. These are the actions which would've been taken
-        # for each batch state according to policy_net
+        # Compute Q(s_t, a) - the policy_net computes Q(s_t).
+        # Then, we ues gather() to select the columns of actions taken.
+        # These are the actions which would've been taken for each batch state according to policy_net
         state_action_values = self.policy_net(state_batch).gather(1, action_batch)
         
         # Compute V(s_{t+1}) for all next states.
@@ -165,7 +163,7 @@ class SmartAgent(BaseAgent):
         torch.nn.utils.clip_grad_value_(self.policy_net.parameters(), 100)
         self.optimizer.step()
         
-    def train_target_net(self) -> None:
+    def train_target_net_soft(self) -> None:
         """
         Soft update of the target network's weights
         θ′ ← τ θ + (1 −τ )θ′
@@ -175,3 +173,10 @@ class SmartAgent(BaseAgent):
         for key in policy_net_state_dict:
             target_net_state_dict[key] = policy_net_state_dict[key]*TAU + target_net_state_dict[key]*(1-TAU)
         self.target_net.load_state_dict(target_net_state_dict)
+        
+    def train_target_net_hard(self) -> None:
+        """
+        Perform a hard update to the target network.
+        """
+        policy_net_state_dict = self.policy_net.state_dict()
+        self.target_net.load_state_dict(policy_net_state_dict)

@@ -2,7 +2,6 @@ import os
 import datetime
 import pickle
 import pandas as pd
-
 from pyRDDLGym import RDDLEnv
 from pyRDDLGym import ExampleManager
 from brain.smart_net import SmartNet
@@ -11,6 +10,7 @@ from brain.smart_writer import SmartWriter
 start_time = datetime.datetime.now()
 EPISODES_NUM = 10
 UPDATES = 100
+IS_SOFT = False
 
 # Init problem
 domain = "problem/domain.rddl"
@@ -103,7 +103,7 @@ if __name__=="__main__":
         # Train the policies networks
         for update in range(UPDATES):
             print_progress(update, 20, 'Update')
-            smart_net.train()
+            smart_net.train(IS_SOFT, update, UPDATES)
             
         # Finish episode
         writer.add_scalar("Reward", total_reward, episode)
