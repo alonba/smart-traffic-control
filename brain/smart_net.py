@@ -3,6 +3,8 @@ from gym.spaces  import Dict
 from pyRDDLGym.Policies.Agents import BaseAgent
 from brain.agent import SmartAgent
 
+REWARD_DOWNSCALE = 100
+
 class SmartNet(BaseAgent):
     def __init__(self, nodes_num: int, net_obs_space: Dict, net_action_space: Dict) -> None:
         agents = []
@@ -58,4 +60,4 @@ class SmartNet(BaseAgent):
         rewards = {}
         for agent in self.agents:
             rewards[agent.name] = agent.calculate_agent_reward_from_state(state)
-        return pd.Series(rewards)
+        return pd.Series(rewards)/REWARD_DOWNSCALE
