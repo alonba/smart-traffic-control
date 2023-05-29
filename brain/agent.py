@@ -6,6 +6,7 @@ from collections import OrderedDict
 from pyRDDLGym.Policies.Agents import BaseAgent
 from brain.dqn import DQN
 from brain.memory import ReplayMemory, Transition
+from brain.smart_writer import SmartWriter
 
 # BATCH_SIZE is the number of transitions sampled from the replay buffer
 # GAMMA is the discount factor as mentioned in the previous section
@@ -118,7 +119,7 @@ class SmartAgent(BaseAgent):
         # Explore a random action
         return self.ordered_dict_to_dict(self.action_space.sample())
     
-    def train_policy_net(self) -> None:
+    def train_policy_net(self, writer: SmartWriter, episode: int) -> None:
         """
         Trains the policy net using data from the replay memory
         Credit to:
@@ -154,6 +155,7 @@ class SmartAgent(BaseAgent):
         
         # Compute Huber loss
         loss = self.criterion(state_action_values, expected_state_action_values.unsqueeze(1))
+        writer.add_scalar(f"{self.name}_Loss", loss, episode)
         
         # Optimize the model
         self.optimizer.zero_grad()

@@ -1,4 +1,4 @@
-from brain.smart_net import SmartNet
+# from brain.smart_net import SmartNet
 from torch.utils.tensorboard import SummaryWriter
 
 class SmartWriter(SummaryWriter):
@@ -10,7 +10,7 @@ class SmartWriter(SummaryWriter):
         flattened_weights = weights.flatten()
         self.add_histogram(layer_name, flattened_weights, global_step=step, bins='tensorflow')
         
-    def weight_histograms(self, smart_net: SmartNet, step: int) -> None:
+    def weight_histograms(self, smart_net, step: int) -> None:
         """
         Writes to TensorBoard the model's weights histogram
         """
@@ -23,7 +23,7 @@ class SmartWriter(SummaryWriter):
                     layer_name = f'{agent.name}_{model_name}_layer_{layer_number}'
                     self.weight_histograms_linear(step, param, layer_name)
                     
-    def graphs(self, smart_net: SmartNet, state):
+    def graphs(self, smart_net, state):
         for agent in smart_net.agents:
             agent_obs = agent.filter_agent_obs_from_net_state(agent.name, state)
             agent_obs_tensor = agent.dict_vals_to_tensor(agent_obs)

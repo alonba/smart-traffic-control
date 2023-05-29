@@ -2,6 +2,7 @@ import pandas as pd
 from gym.spaces  import Dict
 from pyRDDLGym.Policies.Agents import BaseAgent
 from brain.agent import SmartAgent
+from brain.smart_writer import SmartWriter
 
 class SmartNet(BaseAgent):
     def __init__(self, nodes_num: int, net_obs_space: Dict, net_action_space: Dict) -> None:
@@ -24,13 +25,13 @@ class SmartNet(BaseAgent):
         
         return actions
     
-    def train(self, is_soft: bool, update_idx: int, updates_num: int) -> None:
+    def train(self, writer: SmartWriter, episode: int, is_soft: bool, update_idx: int, updates_num: int) -> None:
         """
         Train the policy and target nets of the agents.
         Train the target net according to the method chosen - soft or hard update.
         """
         for agent in self.agents:
-            agent.train_policy_net()
+            agent.train_policy_net(writer, episode)
             if is_soft:
                 agent.train_target_net_soft()
             elif update_idx == (updates_num - 1):   # Hard update once every 100 updates
