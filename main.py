@@ -8,7 +8,7 @@ from brain.smart_net import SmartNet
 from brain.smart_writer import SmartWriter
 
 start_time = datetime.datetime.now()
-EPISODES_NUM = 20
+EPISODES_NUM = 100
 UPDATES = 100
 IS_SOFT = False
 
