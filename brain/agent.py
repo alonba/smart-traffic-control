@@ -6,7 +6,6 @@ from collections import OrderedDict
 from pyRDDLGym.Policies.Agents import BaseAgent
 from brain.dqn import DQN
 from brain.memory import ReplayMemory, Transition
-from brain.smart_writer import SmartWriter
 
 # BATCH_SIZE is the number of transitions sampled from the replay buffer
 # GAMMA is the discount factor as mentioned in the previous section
@@ -119,23 +118,24 @@ class SmartAgent(BaseAgent):
         # Explore a random action
         return self.ordered_dict_to_dict(self.action_space.sample())
     
-    def train_policy_net(self, writer: SmartWriter, episode: int) -> None:
+    def train_policy_net(self) -> float:
         """
-        Trains the policy net using data from the replay memory
+        Trains the policy net using data from the replay memory.
         Credit to:
         https://colab.research.google.com/github/pytorch/tutorials/blob/gh-pages/_downloads/9da0471a9eeb2351a488cd4b44fc6bbf/reinforcement_q_learning.ipynb#scrollTo=UumN5HdU_EeE
+        
+        Returns the training loss.
         """
         
         if len(self.memory) < BATCH_SIZE:
             return
         transitions = self.memory.sample(BATCH_SIZE)
-        # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
-        # detailed explanation). This converts batch-array of Transitions
-        # to Transition of batch-arrays.
+        # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for detailed explanation).
+        # This converts batch-array of Transitions to Transition of batch-arrays.
         batch = Transition(*zip(*transitions))
         
         state_batch = self.tuple_of_dicts_to_tensor(batch.state, output_type=torch.float32)
-        action_batch = self.tuple_of_dicts_to_tensor(batch.action, output_type=torch.int64)  # TODO check why the actions are almost always 0. does it happen later also? or just in the first episode?
+        action_batch = self.tuple_of_dicts_to_tensor(batch.action, output_type=torch.int64)
         reward_batch = torch.tensor(batch.reward, device=self.device)
         next_state_batch = self.tuple_of_dicts_to_tensor(batch.next_state, output_type=torch.float32)
         
@@ -155,7 +155,6 @@ class SmartAgent(BaseAgent):
         
         # Compute Huber loss
         loss = self.criterion(state_action_values, expected_state_action_values.unsqueeze(1))
-        writer.add_scalar(f"{self.name}/Loss", loss, episode)
         
         # Optimize the model
         self.optimizer.zero_grad()
@@ -164,6 +163,8 @@ class SmartAgent(BaseAgent):
         # In-place gradient clipping
         torch.nn.utils.clip_grad_value_(self.policy_net.parameters(), 100)
         self.optimizer.step()
+        
+        return loss.item()
         
     def train_target_net_soft(self) -> None:
         """

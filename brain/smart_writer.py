@@ -1,4 +1,6 @@
-# from brain.smart_net import SmartNet
+import torch
+import pandas as pd
+from brain.smart_net import SmartNet
 from torch.utils.tensorboard import SummaryWriter
 
 class SmartWriter(SummaryWriter):
@@ -6,11 +8,11 @@ class SmartWriter(SummaryWriter):
     def __init__(self):
         super().__init__()
         
-    def weight_histograms_linear(self, step: int, weights, layer_name: str) -> None:
+    def weight_histograms_linear(self, step: int, weights: torch.tensor, layer_name: str) -> None:
         flattened_weights = weights.flatten()
         self.add_histogram(layer_name, flattened_weights, global_step=step, bins='tensorflow')
         
-    def weight_histograms(self, smart_net, step: int) -> None:
+    def weight_histograms(self, smart_net: SmartNet, step: int) -> None:
         """
         Writes to TensorBoard the model's weights histogram
         """
@@ -23,7 +25,7 @@ class SmartWriter(SummaryWriter):
                     layer_name = f'{agent.name}/{model_name}/layer_{layer_number}'
                     self.weight_histograms_linear(step, param, layer_name)
                     
-    def graphs(self, smart_net, state):
+    def graphs(self, smart_net: SmartNet, state: dict):
         """
         Writes the nets structure to TensorBoard
         """
@@ -33,10 +35,10 @@ class SmartWriter(SummaryWriter):
             self.add_graph(agent.policy_net, agent_obs_tensor)
             self.add_graph(agent.target_net, agent_obs_tensor)
             
-    def rewards(self, smart_net, rewards, episode):
+    def rewards_or_losses(self, smart_net: SmartNet, title: str, rewards_or_losses: pd.Series, episode: int):
         """
-        Writes the total and individual rewards to TensorBoard
+        Writes the total and individual rewards / losses to TensorBoard
         """
-        self.add_scalar("TotalReward", rewards.sum(), episode)
+        self.add_scalar(f"Total{title}", rewards_or_losses.sum(), episode)
         for agent in smart_net.agents:
-            self.add_scalar(f"{agent.name}/Reward", rewards.loc[agent.name], episode)
+            self.add_scalar(f"{agent.name}/{title}", rewards_or_losses.loc[agent.name], episode)

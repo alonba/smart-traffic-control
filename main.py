@@ -74,6 +74,7 @@ if __name__=="__main__":
     reward_list = []
     for episode in range(EPISODES_NUM):
         # Initialize env
+        total_losses = 0
         total_rewards = 0
         state = env.reset()
         
@@ -103,10 +104,12 @@ if __name__=="__main__":
         # Train the policies networks
         for update in range(UPDATES):
             print_progress(update, 20, 'Update')
-            smart_net.train(writer, episode, IS_SOFT, update, UPDATES)
+            losses = smart_net.train(IS_SOFT, update, UPDATES)
+            total_losses += losses
             
         # Finish episode
-        writer.rewards(smart_net, total_rewards, episode)
+        writer.rewards_or_losses(smart_net, 'Loss', total_losses, episode)
+        writer.rewards_or_losses(smart_net, 'Reward', total_rewards, episode)
         writer.weight_histograms(smart_net, episode)
         episode_total_reward = total_rewards.sum()
         reward_list.append(episode_total_reward)
