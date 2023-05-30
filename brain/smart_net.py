@@ -25,7 +25,7 @@ class SmartNet(BaseAgent):
         
         return actions
     
-    def train(self, is_soft: bool, update_idx: int, updates_num: int) -> pd.Series:
+    def train(self, episode: int) -> pd.Series:
         """
         Train the policy and target nets of the agents.
         Train the target net according to the method chosen - soft or hard update.
@@ -37,9 +37,9 @@ class SmartNet(BaseAgent):
             losses[agent.name] = agent.train_policy_net()
             
             # Train the target net
-            if is_soft:
+            if hpam.IS_SOFT:
                 agent.train_target_net_soft()
-            elif update_idx == (updates_num - 1):   # Hard update once every N updates
+            elif episode % hpam.HARD_UPDATE_N == 0:   # Hard update once every N updates
                 agent.train_target_net_hard()
         
         return pd.Series(losses)

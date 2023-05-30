@@ -11,7 +11,7 @@ start_time = datetime.datetime.now()
 
 # Init problem
 domain = "problem/domain.rddl"
-instance = "problem/1x2_slow.rddl"
+instance = "problem/1x2.rddl"
 env = RDDLEnv.RDDLEnv(domain=domain, instance=instance)
 num_of_nodes_in_grid = len(env.model.objects['intersection'])
 
@@ -58,10 +58,10 @@ if __name__=="__main__":
             # Progress to the next step
             state = next_state
             
-        # Train the policies networks
+        # Train the networks
         for update in range(hpam.UPDATES):
             aux.print_progress(update, 20, 'Update')
-            losses = smart_net.train(hpam.IS_SOFT, update, hpam.UPDATES)
+            losses = smart_net.train(episode)
             total_losses += losses
             
         # Finish episode

@@ -27,7 +27,7 @@ class SmartAgent(BaseAgent):
         self.target_net.load_state_dict(self.policy_net.state_dict())
 
         self.optimizer = torch.optim.RMSprop(self.policy_net.parameters(), lr=hpam.LR)
-        self.memory = ReplayMemory(10**5)
+        self.memory = ReplayMemory(hpam.MEMORY_SIZE)
         self.criterion = torch.nn.SmoothL1Loss()
     
     @staticmethod
@@ -63,6 +63,7 @@ class SmartAgent(BaseAgent):
         Gets the net state, and calculates the reward for a specific agent.
         The reward is the sum of the Nc in the 4 lanes coming in towards an intersection.
         """
+        # TODO - switch reward to q from Nc and analyse.
         reward = 0
         cars_number_regex = f"Nc___l-..-{self.name}"
         for k,v in state.items():
@@ -92,7 +93,7 @@ class SmartAgent(BaseAgent):
         """
         Infer from DQN (policy net), or explore the possible actions, with a pre-set probability.
         """
-        
+        # TODO - Optimization. First N episodes use only exploration. Than reduce(gradually, or instantly) to 0.1
         sample = random.random()
         if sample > hpam.EXPLORE_CHANCE:
             # Use the policy net recommendation
