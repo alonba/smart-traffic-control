@@ -16,7 +16,10 @@ env = RDDLEnv.RDDLEnv(domain=domain, instance=instance)
 num_of_nodes_in_grid = len(env.model.objects['intersection'])
 
 # Init agents (a net holds agents, one for each node)
-smart_net = SmartNet(nodes_num=num_of_nodes_in_grid, net_obs_space=env.observation_space, net_action_space=env.action_space)
+if hpam.LEARN:
+    smart_net = SmartNet(nodes_num=num_of_nodes_in_grid, net_obs_space=env.observation_space, net_action_space=env.action_space)
+else:   # Use pre-trained net for performance analysis
+    smart_net = aux.load_from_pickle('output/May30_17-41_ET-0H-1M-56S/smart_net')
 
 # Set visualizer
 viz = ExampleManager.GetEnvInfo('Traffic').get_visualizer()
@@ -74,7 +77,7 @@ if __name__=="__main__":
         env.close()
     
     # Plot and save rewards
-    output_dir = "output/" + aux.now() + '_ET-' + aux.elapsed_time(start_time)
+    output_dir = "output/" + run_name + '_ET-' + aux.elapsed_time(start_time)
     os.mkdir(output_dir)
     aux.save_rewards_per_episode_plot(reward_list, output_dir)
     aux.save_to_pickle(smart_net, output_dir + '/smart_net')
