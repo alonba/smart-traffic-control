@@ -1,14 +1,13 @@
 import os
 import datetime
-import pickle
-import pandas as pd
 from pyRDDLGym import RDDLEnv
 from pyRDDLGym import ExampleManager
+import brain.auxiliary as aux
 from brain.smart_net import SmartNet
 from brain.smart_writer import SmartWriter
 
 start_time = datetime.datetime.now()
-EPISODES_NUM = 100
+EPISODES_NUM = 3
 UPDATES = 100
 IS_SOFT = False
 
@@ -28,50 +27,10 @@ viz = ExampleManager.GetEnvInfo('Traffic').get_visualizer()
 env.set_visualizer(viz)
 
 # Initialize the SummaryWriter for TensorBoard. Its output will be written to ./runs/
-writer = SmartWriter()
+run_name = f'{aux.now()}_Gamma08'
+writer = SmartWriter(run_name)
 
-def print_progress(step: int, skip: int, name: str) -> None:
-    real_step = step + 1
-    if real_step % skip == 0:
-        print(f'{name} = {real_step}')
-
-def strfdelta(tdelta: datetime.timedelta, fmt: str) -> str:
-    d = {"days": tdelta.days}
-    d["hours"], rem = divmod(tdelta.seconds, 3600)
-    d["minutes"], d["seconds"] = divmod(rem, 60)
-    return fmt.format(**d)
-    
-def now() -> str:
-    return datetime.datetime.now().strftime("%b-%d-%H%M")
-
-def elapsed_time(start_time: datetime.datetime) -> str:
-    elapsed = datetime.datetime.now() - start_time
-    return strfdelta(elapsed, "{hours}H-{minutes}M-{seconds}S")
-    
-def save_to_pickle(data, filename: str) -> None:
-    filename = filename + '.pickle'
-    with open(filename, 'wb') as handle:
-        pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
-        
-def load_from_pickle(filename: str):
-    filename = str(filename) + '.pickle'
-    with open(filename, 'rb') as handle:
-        res = pickle.load(handle)
-    return res
-
-def save_rewards_per_episode_plot(rewards: list, path: str) -> None:
-    """
-    Saves 2 files -
-        1. Rewards list as pickle
-        2. PNG image of the figure
-    """
-    save_to_pickle(rewards, path + '/rewards_list')
-    
-    reward_series = pd.Series(rewards)
-    ax = reward_series.plot(xlabel='Episode', ylabel='Reward', title='Total reward per episode')
-    ax.get_figure().savefig(path + '/reward_per_episode', bbox_inches='tight')
-    
-    
+ 
 if __name__=="__main__":
     reward_list = []
     for episode in range(EPISODES_NUM):
@@ -89,7 +48,7 @@ if __name__=="__main__":
             action = smart_net.sample_action(state)
             
             # Make a step
-            print_progress(step, 50, 'Step')
+            aux.print_progress(step, 50, 'Step')
             next_state, centralized_reward, done, info = env.step(action)
             
             # Calculate rewards
@@ -105,7 +64,7 @@ if __name__=="__main__":
             
         # Train the policies networks
         for update in range(UPDATES):
-            print_progress(update, 20, 'Update')
+            aux.print_progress(update, 20, 'Update')
             losses = smart_net.train(IS_SOFT, update, UPDATES)
             total_losses += losses
             
@@ -119,10 +78,10 @@ if __name__=="__main__":
         env.close()
     
     # Plot and save rewards
-    output_dir = "output/" + now() + '_ET-' + elapsed_time(start_time)
+    output_dir = "output/" + aux.now() + '_ET-' + aux.elapsed_time(start_time)
     os.mkdir(output_dir)
-    save_rewards_per_episode_plot(reward_list, output_dir)
-    save_to_pickle(smart_net, output_dir + '/smart_net')
+    aux.save_rewards_per_episode_plot(reward_list, output_dir)
+    aux.save_to_pickle(smart_net, output_dir + '/smart_net')
     
     # Save graphs of models to TensorBoard
     writer.graphs(smart_net, state)

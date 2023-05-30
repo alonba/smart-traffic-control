@@ -5,8 +5,8 @@ from torch.utils.tensorboard import SummaryWriter
 
 class SmartWriter(SummaryWriter):
     
-    def __init__(self):
-        super().__init__()
+    def __init__(self, log_dir: str):
+        super().__init__('runs/' + log_dir)
         
     def weight_histograms_linear(self, step: int, weights: torch.tensor, layer_name: str) -> None:
         flattened_weights = weights.flatten()
