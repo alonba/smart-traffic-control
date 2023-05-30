@@ -5,17 +5,13 @@ from pyRDDLGym import ExampleManager
 import brain.auxiliary as aux
 from brain.smart_net import SmartNet
 from brain.smart_writer import SmartWriter
+import brain.hyper_params as hpam
 
 start_time = datetime.datetime.now()
-EPISODES_NUM = 3
-UPDATES = 100
-IS_SOFT = False
 
 # Init problem
 domain = "problem/domain.rddl"
-# instance = "problem/1x2.rddl"   # 2 nodes grid
-instance = "problem/1x2_slow.rddl"   # 2 nodes grid - very low arrival rate from sources
-# instance = "problem/3x3.rddl"   # 3*3 grid
+instance = "problem/1x2_slow.rddl"
 env = RDDLEnv.RDDLEnv(domain=domain, instance=instance)
 num_of_nodes_in_grid = len(env.model.objects['intersection'])
 
@@ -27,13 +23,13 @@ viz = ExampleManager.GetEnvInfo('Traffic').get_visualizer()
 env.set_visualizer(viz)
 
 # Initialize the SummaryWriter for TensorBoard. Its output will be written to ./runs/
-run_name = f'{aux.now()}_Gamma08'
+run_name = f'{aux.now()}_Gamma{hpam.GAMMA}_Explore{hpam.EXPLORE_CHANCE}'
 writer = SmartWriter(run_name)
 
  
 if __name__=="__main__":
     reward_list = []
-    for episode in range(EPISODES_NUM):
+    for episode in range(hpam.EPISODES_NUM):
         # Initialize env
         total_losses = 0
         total_rewards = 0
@@ -63,9 +59,9 @@ if __name__=="__main__":
             state = next_state
             
         # Train the policies networks
-        for update in range(UPDATES):
+        for update in range(hpam.UPDATES):
             aux.print_progress(update, 20, 'Update')
-            losses = smart_net.train(IS_SOFT, update, UPDATES)
+            losses = smart_net.train(hpam.IS_SOFT, update, hpam.UPDATES)
             total_losses += losses
             
         # Finish episode

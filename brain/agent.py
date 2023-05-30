@@ -6,16 +6,7 @@ from collections import OrderedDict
 from pyRDDLGym.Policies.Agents import BaseAgent
 from brain.dqn import DQN
 from brain.memory import ReplayMemory, Transition
-
-# BATCH_SIZE is the number of transitions sampled from the replay buffer
-# GAMMA is the discount factor as mentioned in the previous section
-# TAU is the update rate of the target network
-# LR is the learning rate of the optimizer
-BATCH_SIZE = 64
-GAMMA = 0.8
-EXPLORE_CHANCE = 0.1
-TAU = 0.005
-LR = 1e-4
+import brain.hyper_params as hpam
 
 class SmartAgent(BaseAgent):
     """
@@ -35,7 +26,7 @@ class SmartAgent(BaseAgent):
         self.target_net = DQN(n_observations, n_actions).to(self.device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
 
-        self.optimizer = torch.optim.RMSprop(self.policy_net.parameters(), lr=LR)
+        self.optimizer = torch.optim.RMSprop(self.policy_net.parameters(), lr=hpam.LR)
         self.memory = ReplayMemory(10**5)
         self.criterion = torch.nn.SmoothL1Loss()
     
@@ -103,7 +94,7 @@ class SmartAgent(BaseAgent):
         """
         
         sample = random.random()
-        if sample > EXPLORE_CHANCE:
+        if sample > hpam.EXPLORE_CHANCE:
             # Use the policy net recommendation
             with torch.no_grad():
                 state_tensor = self.dict_vals_to_tensor(state)
@@ -126,9 +117,9 @@ class SmartAgent(BaseAgent):
         Returns the training loss.
         """
         
-        if len(self.memory) < BATCH_SIZE:
+        if len(self.memory) < hpam.BATCH_SIZE:
             return
-        transitions = self.memory.sample(BATCH_SIZE)
+        transitions = self.memory.sample(hpam.BATCH_SIZE)
         # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for detailed explanation).
         # This converts batch-array of Transitions to Transition of batch-arrays.
         batch = Transition(*zip(*transitions))
@@ -150,7 +141,7 @@ class SmartAgent(BaseAgent):
         with torch.no_grad():
             next_state_values = self.target_net(next_state_batch).max(1)[0]
         # Compute the expected Q values
-        expected_state_action_values = (next_state_values * GAMMA) + reward_batch
+        expected_state_action_values = (next_state_values * hpam.GAMMA) + reward_batch
         
         # Compute Huber loss
         loss = self.criterion(state_action_values, expected_state_action_values.unsqueeze(1))
@@ -173,7 +164,7 @@ class SmartAgent(BaseAgent):
         target_net_state_dict = self.target_net.state_dict()
         policy_net_state_dict = self.policy_net.state_dict()
         for key in policy_net_state_dict:
-            target_net_state_dict[key] = policy_net_state_dict[key]*TAU + target_net_state_dict[key]*(1-TAU)
+            target_net_state_dict[key] = policy_net_state_dict[key]*hpam.TAU + target_net_state_dict[key]*(1-hpam.TAU)
         self.target_net.load_state_dict(target_net_state_dict)
         
     def train_target_net_hard(self) -> None:
