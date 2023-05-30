@@ -14,7 +14,9 @@ IS_SOFT = False
 
 # Init problem
 domain = "problem/domain.rddl"
-instance = "problem/instance0.rddl"   # 2 nodes grid
+# instance = "problem/1x2.rddl"   # 2 nodes grid
+instance = "problem/1x2_slow.rddl"   # 2 nodes grid - very low arrival rate from sources
+# instance = "problem/3x3.rddl"   # 3*3 grid
 env = RDDLEnv.RDDLEnv(domain=domain, instance=instance)
 num_of_nodes_in_grid = len(env.model.objects['intersection'])
 
