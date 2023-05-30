@@ -1,4 +1,4 @@
-LEARN = False                            # Learn or Analyze
+LEARN = True                            # Learn or Analyze   # TODO After training the smart_net, analyze mode produces the same reward every episode, as training is disabled. Maybe i misunderstood the explore=0 instruction.
 
 EPISODES_NUM = 10                       # Number of episodes in the simulation
 UPDATES = 100                           # Number of updates taken every episode
