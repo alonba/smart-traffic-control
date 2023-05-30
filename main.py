@@ -1,4 +1,5 @@
 import os
+import sys
 import datetime
 from pyRDDLGym import RDDLEnv
 from pyRDDLGym import ExampleManager
@@ -7,6 +8,8 @@ from brain.smart_net import SmartNet
 from brain.smart_writer import SmartWriter
 import brain.hyper_params as hpam
 
+Hard_Updates_N = int(sys.argv[1:][0])
+print('Hard Update N:' + str(Hard_Updates_N))
 start_time = datetime.datetime.now()
 
 # Init problem
@@ -28,7 +31,7 @@ env.set_visualizer(viz)
 
 # Initialize the SummaryWriter for TensorBoard. Its output will be written to ./runs/
 if hpam.LEARN:
-    run_name = f'{aux.now()}_Gamma{hpam.GAMMA}_Explore{hpam.EXPLORE_CHANCE}_Hard{hpam.HARD_UPDATE_N}'
+    run_name = f'{aux.now()}_Gamma{hpam.GAMMA}_Explore{hpam.EXPLORE_CHANCE}_Hard{Hard_Updates_N}'
 else:
     run_name = f'Analyze_{smart_net_name}'
 writer = SmartWriter(run_name)
@@ -70,7 +73,7 @@ if __name__=="__main__":
         if hpam.LEARN:
             for update in range(hpam.UPDATES):
                 aux.print_progress(update, 25, 'Update')
-                losses = smart_net.train(episode)
+                losses = smart_net.train(episode, Hard_Updates_N)
                 total_losses += losses
             
         # Finish episode
