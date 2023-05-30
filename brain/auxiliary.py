@@ -1,3 +1,4 @@
+import sys
 import pickle
 import datetime
 import pandas as pd
@@ -43,4 +44,10 @@ def save_rewards_per_episode_plot(rewards: list, path: str) -> None:
     ax = reward_series.plot(xlabel='Episode', ylabel='Reward', title='Total reward per episode')
     ax.get_figure().savefig(path + '/reward_per_episode', bbox_inches='tight')
     
-   
+def get_command_line_args():
+    # Access the command-line arguments
+    arguments = sys.argv[1:]
+
+    # Print the arguments
+    for arg in arguments:
+        print(arg)
