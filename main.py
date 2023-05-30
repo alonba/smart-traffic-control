@@ -19,14 +19,18 @@ num_of_nodes_in_grid = len(env.model.objects['intersection'])
 if hpam.LEARN:
     smart_net = SmartNet(nodes_num=num_of_nodes_in_grid, net_obs_space=env.observation_space, net_action_space=env.action_space)
 else:   # Use pre-trained net for performance analysis
-    smart_net = aux.load_from_pickle('output/May30_17-41_ET-0H-1M-56S/smart_net')
+    smart_net_name = 'May30_17-41_ET-0H-1M-56S'
+    smart_net = aux.load_from_pickle(f'output/{smart_net_name}/smart_net')
 
 # Set visualizer
 viz = ExampleManager.GetEnvInfo('Traffic').get_visualizer()
 env.set_visualizer(viz)
 
 # Initialize the SummaryWriter for TensorBoard. Its output will be written to ./runs/
-run_name = f'{aux.now()}_Gamma{hpam.GAMMA}_Explore{hpam.EXPLORE_CHANCE}_Hard{hpam.HARD_UPDATE_N}'
+if hpam.LEARN:
+    run_name = f'{aux.now()}_Gamma{hpam.GAMMA}_Explore{hpam.EXPLORE_CHANCE}_Hard{hpam.HARD_UPDATE_N}'
+else:
+    run_name = f'Analyze_{smart_net_name}'
 writer = SmartWriter(run_name)
 
  
@@ -56,33 +60,37 @@ if __name__=="__main__":
             total_rewards += rewards
             
             # Store the transition in memory
-            smart_net.remember(state, action, next_state, rewards)
+            if hpam.LEARN:
+                smart_net.remember(state, action, next_state, rewards)
             
             # Progress to the next step
             state = next_state
             
         # Train the networks
-        for update in range(hpam.UPDATES):
-            aux.print_progress(update, 20, 'Update')
-            losses = smart_net.train(episode)
-            total_losses += losses
+        if hpam.LEARN:
+            for update in range(hpam.UPDATES):
+                aux.print_progress(update, 25, 'Update')
+                losses = smart_net.train(episode)
+                total_losses += losses
             
         # Finish episode
-        writer.rewards_or_losses(smart_net, 'Loss', total_losses, episode)
+        if hpam.LEARN:
+            writer.rewards_or_losses(smart_net, 'Loss', total_losses, episode)
+            writer.weight_histograms(smart_net, episode)
         writer.rewards_or_losses(smart_net, 'Reward', total_rewards, episode)
-        writer.weight_histograms(smart_net, episode)
         episode_total_reward = total_rewards.sum()
         reward_list.append(episode_total_reward)
         print(f"Episode {episode + 1} ended with reward {episode_total_reward}")
         env.close()
     
-    # Plot and save rewards
+    # Save rewards vs episode plot, and pickle smart_net.
     output_dir = "output/" + run_name + '_ET-' + aux.elapsed_time(start_time)
     os.mkdir(output_dir)
     aux.save_rewards_per_episode_plot(reward_list, output_dir)
     aux.save_to_pickle(smart_net, output_dir + '/smart_net')
     
     # Save graphs of models to TensorBoard
-    writer.graphs(smart_net, state)
+    if hpam.LEARN:
+        writer.graphs(smart_net, state)
     
     end_of_file = True

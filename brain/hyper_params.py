@@ -1,9 +1,9 @@
-LEARN = True                            # Learn or Analyze
+LEARN = False                            # Learn or Analyze
 
-EPISODES_NUM = 25                       # Number of episodes in the simulation
+EPISODES_NUM = 10                       # Number of episodes in the simulation
 UPDATES = 100                           # Number of updates taken every episode
 
-MEMORY_SIZE = 10 ** 5                   # The size (number of transitions) of the replay memory buffer # TODO raise to 10^6
+MEMORY_SIZE = 10 ** 5                   # The size (number of transitions) of the replay memory buffer # TODO raise to 10^6. Although - a big buffer gives causes overuse -> overwighting of early samples/steps
 BATCH_SIZE = 64                         # The number of transitions sampled from the replay buffer
 
 GAMMA = 0.95                            # The discount factor as mentioned in the previous section
