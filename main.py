@@ -8,8 +8,10 @@ from brain.smart_net import SmartNet
 from brain.smart_writer import SmartWriter
 import brain.hyper_params as hpam
 
+# Search hpams by bash script
 Hard_Updates_N = int(sys.argv[1:][0])
-print('Hard Update N:' + str(Hard_Updates_N))
+print('Hard Update N: ' + str(Hard_Updates_N))
+
 start_time = datetime.datetime.now()
 
 # Init problem
