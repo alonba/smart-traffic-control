@@ -9,8 +9,8 @@ from brain.smart_writer import SmartWriter
 import brain.hyper_params as hpam
 
 # Search hpams by bash script
-Hard_Updates_N = int(sys.argv[1:][0])
-print('Hard Update N: ' + str(Hard_Updates_N))
+# Hard_Updates_N = int(sys.argv[1:][0])
+# print('Hard Update N: ' + str(Hard_Updates_N))
 
 start_time = datetime.datetime.now()
 
@@ -33,7 +33,7 @@ env.set_visualizer(viz)
 
 # Initialize the SummaryWriter for TensorBoard. Its output will be written to ./runs/
 if hpam.LEARN:
-    run_name = f'{aux.now()}_Gamma{hpam.GAMMA}_Explore{hpam.EXPLORE_CHANCE}_Hard{Hard_Updates_N}'
+    run_name = f'{aux.now()}_Explore{hpam.EXPLORE_CHANCE}_Hard{hpam.HARD_UPDATE_N}'
 else:
     run_name = f'Analyze_{smart_net_name}'
 writer = SmartWriter(run_name)
@@ -75,7 +75,7 @@ if __name__=="__main__":
         if hpam.LEARN:
             for update in range(hpam.UPDATES):
                 aux.print_progress(update, 25, 'Update')
-                losses = smart_net.train(episode, Hard_Updates_N)
+                losses = smart_net.train(episode, hpam.HARD_UPDATE_N)
                 total_losses += losses
             
         # Finish episode
