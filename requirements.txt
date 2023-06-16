@@ -6,3 +6,4 @@ pyRDDLGym
 tensorboard
 torch
 torchvision
+torch_tb_profiler
