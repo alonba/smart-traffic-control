@@ -14,6 +14,7 @@ start_time = datetime.datetime.now()
 parser = argparse.ArgumentParser(description='Run smart traffic control simulation')
 parser.add_argument('-hu', '--hard_update', type=int, default=hpam.HARD_UPDATE_N, help='Hard update once every N episodes')
 parser.add_argument('-w', '--neighbor_weights', type=float, default=hpam.NEIGHBORS_WEIGHT, help='Weight of neighbors rewards')
+# parser.add_argument('-e', '--explore', type=float, default=hpam.EXPLORE_CHANCE, help='Exploration probability')
 args = parser.parse_args()
 
 # Init problem
@@ -35,7 +36,7 @@ env.set_visualizer(viz)
 
 # Initialize the SummaryWriter for TensorBoard. Its output will be written to ./runs/
 if hpam.LEARN:
-    run_name = f'{aux.now()}_Explore{hpam.EXPLORE_CHANCE}_Hard{args.hard_update}'
+    run_name = f'{aux.now()}_Explore{hpam.EXPLORE_CHANCE}_Beta{args.neighbor_weights}'
 else:
     run_name = f'Analyze_{smart_net_name}'
 writer = SmartWriter(run_name)
