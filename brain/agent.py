@@ -16,6 +16,7 @@ class SmartAgent(BaseAgent):
         self.name = name
         self.action_space = Dict(SmartAgent.filter_agent_dict_from_net_dict(self.name, net_action_space))
         self.observation_space = Dict(SmartAgent.filter_agent_obs_from_net_state(self.name, net_state))
+        self.neighbrs = self.get_neighbrs(net_state)
         
         n_observations = len(self.observation_space.spaces)
         n_actions = len(self.action_space)
@@ -174,3 +175,15 @@ class SmartAgent(BaseAgent):
         """
         policy_net_state_dict = self.policy_net.state_dict()
         self.target_net.load_state_dict(policy_net_state_dict)
+        
+    def get_neighbrs(self, state: dict) -> float:
+        """
+        Extract the intercsetion's neighbours from the state.
+        """
+        neighbrs = []
+        neighbrs_regex = f"Nc___l-i.-{self.name}"
+        for k,v in state.items():
+            if re.search(neighbrs_regex, k):
+                neighbr_name = k.split('-')[1]
+                neighbrs.append(neighbr_name)
+        return neighbrs

@@ -56,7 +56,16 @@ class SmartNet(BaseAgent):
         """
         Gets a state, returns a df with the calculated rewards per agent.
         """
-        rewards = {}
+        # Calculate self rewards for all the agents
+        self_rewards = {}
         for agent in self.agents:
-            rewards[agent.name] = agent.calculate_agent_reward_from_state(state)
-        return pd.Series(rewards)/hpam.REWARD_DOWNSCALE
+            self_rewards[agent.name] = agent.calculate_agent_reward_from_state(state)
+        self_rewards = pd.Series(self_rewards)/hpam.REWARD_DOWNSCALE
+        
+        # Calculate a weighted sum of self and neighboring rewards
+        weighted_rewards = self_rewards.copy()
+        for agent in self.agents:
+            for neighbr in agent.neighbrs:
+                weighted_rewards.loc[agent.name] += hpam.NEIGHBRS_WEIGHT * self_rewards.loc[neighbr]
+                
+        return weighted_rewards
