@@ -65,11 +65,11 @@ if __name__=="__main__":
             # Calculate rewards
             # TODO Why is the centralized reward different than summed computed rewards
             rewards = smart_net.compute_rewards_from_state(next_state, args.neighbor_weights)
-            total_rewards += rewards
+            total_rewards += rewards['self']
             
             # Store the transition in memory
             if hpam.LEARN:
-                smart_net.remember(state, action, next_state, rewards)
+                smart_net.remember(state, action, next_state, rewards['weighted'])
             
             # Progress to the next step
             state = next_state

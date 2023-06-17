@@ -52,7 +52,7 @@ class SmartNet(BaseAgent):
             agent_reward = rewards.loc[agent.name]
             agent.memory.push(agent_obs, agent_action, agent_next_obs, agent_reward)
             
-    def compute_rewards_from_state(self, state: dict, neighbors_weight: float) -> pd.Series:
+    def compute_rewards_from_state(self, state: dict, neighbors_weight: float) -> pd.DataFrame:
         """
         Gets a state, returns a df with the calculated rewards per agent.
         """
@@ -60,12 +60,13 @@ class SmartNet(BaseAgent):
         self_rewards = {}
         for agent in self.agents:
             self_rewards[agent.name] = agent.calculate_agent_reward_from_state(state)
-        self_rewards = pd.Series(self_rewards)/hpam.REWARD_DOWNSCALE
+        self_rewards = pd.Series(self_rewards, name='self')/hpam.REWARD_DOWNSCALE
         
         # Calculate a weighted sum of self and neighboring rewards
-        weighted_rewards = self_rewards.copy()
+        weighted_rewards = self_rewards.copy().rename('weighted')
         for agent in self.agents:
             for neighbor in agent.neighbors:
                 weighted_rewards.loc[agent.name] += neighbors_weight * self_rewards.loc[neighbor]
                 
-        return weighted_rewards
+        rewards = pd.concat([self_rewards, weighted_rewards], axis=1)
+        return rewards
