@@ -1,5 +1,5 @@
 import os
-import sys
+import argparse
 import datetime
 from pyRDDLGym import RDDLEnv
 from pyRDDLGym import ExampleManager
@@ -8,11 +8,13 @@ from brain.smart_net import SmartNet
 from brain.smart_writer import SmartWriter
 import brain.hyper_params as hpam
 
-# Search hpams by bash script
-# Hard_Updates_N = int(sys.argv[1:][0])
-# print('Hard Update N: ' + str(Hard_Updates_N))
-
 start_time = datetime.datetime.now()
+
+# Search hpams by bash script
+parser = argparse.ArgumentParser(description='Run smart traffic control simulation')
+parser.add_argument('-hu', '--hard_update', type=int, default=hpam.HARD_UPDATE_N, help='Hard update once every N episodes')
+parser.add_argument('-w', '--neighbor_weights', type=float, default=hpam.NEIGHBORS_WEIGHT, help='Weight of neighbors rewards')
+args = parser.parse_args()
 
 # Init problem
 domain = "problem/domain.rddl"
@@ -33,7 +35,7 @@ env.set_visualizer(viz)
 
 # Initialize the SummaryWriter for TensorBoard. Its output will be written to ./runs/
 if hpam.LEARN:
-    run_name = f'{aux.now()}_Explore{hpam.EXPLORE_CHANCE}_Hard{hpam.HARD_UPDATE_N}'
+    run_name = f'{aux.now()}_Explore{hpam.EXPLORE_CHANCE}_Hard{args.hard_update}'
 else:
     run_name = f'Analyze_{smart_net_name}'
 writer = SmartWriter(run_name)
@@ -61,7 +63,7 @@ if __name__=="__main__":
             
             # Calculate rewards
             # TODO Why is the centralized reward different than summed computed rewards
-            rewards = smart_net.compute_rewards_from_state(next_state)
+            rewards = smart_net.compute_rewards_from_state(next_state, args.neighbor_weights)
             total_rewards += rewards
             
             # Store the transition in memory
@@ -75,7 +77,7 @@ if __name__=="__main__":
         if hpam.LEARN:
             for update in range(hpam.UPDATES):
                 aux.print_progress(update, 25, 'Update')
-                losses = smart_net.train(episode, hpam.HARD_UPDATE_N)
+                losses = smart_net.train(episode, args.hard_update)
                 total_losses += losses
             
         # Finish episode

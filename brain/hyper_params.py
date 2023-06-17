@@ -16,4 +16,4 @@ REWARD_DOWNSCALE = 1                    # Down-scaling the reward by this factor
 IS_SOFT = False                         # Hard or Soft update
 HARD_UPDATE_N = 10                      # Hard update every N episodes
 
-NEIGHBRS_WEIGHT = 0.2
+NEIGHBORS_WEIGHT = 0.2
