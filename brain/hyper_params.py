@@ -1,6 +1,6 @@
 LEARN = True                            # Learn or Analyze   # TODO After training the smart_net, analyze mode produces the same reward every episode, as training is disabled. Maybe i misunderstood the explore=0 instruction.
 
-EPISODES_NUM = 10                       # Number of episodes in the simulation
+EPISODES_NUM = 3000                       # Number of episodes in the simulation
 UPDATES = 100                           # Number of updates taken every episode
 
 MEMORY_SIZE = 10 ** 5                   # The size (number of transitions) of the replay memory buffer # TODO raise to 10^6. Although - a big buffer gives causes overuse -> overwighting of early samples/steps
@@ -16,4 +16,4 @@ REWARD_DOWNSCALE = 1                    # Down-scaling the reward by this factor
 IS_SOFT = False                         # Hard or Soft update
 HARD_UPDATE_N = 10                      # Hard update every N episodes
 
-NEIGHBORS_WEIGHT = 0.2                  # The weight an agent gives to his neighbors' rewards. #TODO maybe sum all neighbors weights to 1 for each agent. Meaning - if an agent has 2 neighbors, beta=0.5. if he has 3->beta=0.3333
+NEIGHBORS_WEIGHT = 0.4                  # The weight an agent gives to his neighbors' rewards. #TODO maybe sum all neighbors weights to 1 for each agent. Meaning - if an agent has 2 neighbors, beta=0.5. if he has 3->beta=0.3333

@@ -19,7 +19,7 @@ args = parser.parse_args()
 
 # Init problem
 domain = "problem/domain.rddl"
-instance = "problem/1x2.rddl"
+instance = "problem/2x3.rddl"
 env = RDDLEnv.RDDLEnv(domain=domain, instance=instance)
 num_of_nodes_in_grid = len(env.model.objects['intersection'])
 
