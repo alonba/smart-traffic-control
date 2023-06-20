@@ -1,7 +1,7 @@
 LEARN = True                            # Learn or Analyze   # TODO After training the smart_net, analyze mode produces the same reward every episode, as training is disabled. Maybe i misunderstood the explore=0 instruction.
 
 GRID_SIZE = '1x2'                       # The grid topology: rows x columns
-EPISODES_NUM = 3000                     # Number of episodes in the simulation
+EPISODES_NUM = 2000                     # Number of episodes in the simulation
 UPDATES = 100                           # Number of updates taken every episode
 
 MEMORY_SIZE = 10 ** 5                   # The size (number of transitions) of the replay memory buffer # TODO raise to 10^6. Although - a big buffer causes overuse -> overweighting of early samples COULD BE SOLVED BY INITIATING THE BUFFER WITH DATA
