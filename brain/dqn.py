@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
+import brain.hyper_params as hpam
 
 class DQN(nn.Module):
 
@@ -9,9 +10,9 @@ class DQN(nn.Module):
         The 2 outputs represent Q(s,stay) and Q(s,advance) where s is the input (state) to the network
         """
         super(DQN, self).__init__()
-        self.layer1 = nn.Linear(n_observations, 128)
-        self.layer2 = nn.Linear(128, 128)
-        self.layer3 = nn.Linear(128, n_actions * 2)
+        self.layer1 = nn.Linear(n_observations, hpam.NET_WIDTH)
+        self.layer2 = nn.Linear(hpam.NET_WIDTH, hpam.NET_WIDTH)
+        self.layer3 = nn.Linear(hpam.NET_WIDTH, n_actions * 2)
         
     def forward(self, x):
         """

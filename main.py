@@ -19,7 +19,8 @@ args = parser.parse_args()
 
 # Init problem
 domain = "problem/domain.rddl"
-instance = "problem/2x3.rddl"
+grid_size = "1x2"
+instance = f"problem/{grid_size}.rddl"
 env = RDDLEnv.RDDLEnv(domain=domain, instance=instance)
 num_of_nodes_in_grid = len(env.model.objects['intersection'])
 
@@ -36,7 +37,7 @@ env.set_visualizer(viz)
 
 # Initialize the SummaryWriter for TensorBoard. Its output will be written to ./runs/
 if hpam.LEARN:
-    run_name = f'{aux.now()}_Explore{hpam.EXPLORE_CHANCE}_Beta{args.neighbor_weights}'
+    run_name = f'{aux.now()}_{grid_size}_Width{hpam.NET_WIDTH}_Explore{hpam.EXPLORE_CHANCE}_Beta{args.neighbor_weights}'
 else:
     run_name = f'Analyze_{smart_net_name}'
 writer = SmartWriter(run_name)
