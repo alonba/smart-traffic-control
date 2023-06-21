@@ -1,3 +1,4 @@
+import re
 import pandas as pd
 from gym.spaces  import Dict
 from pyRDDLGym.Policies.Agents import BaseAgent
@@ -6,6 +7,7 @@ import brain.hyper_params as hpam
 
 class SmartNet(BaseAgent):
     def __init__(self, nodes_num: int, net_obs_space: Dict, net_action_space: Dict) -> None:
+        self.size = nodes_num
         agents = []
         for i in range(nodes_num):
             agent = SmartAgent(f"i{i}", net_action_space, net_obs_space)
@@ -52,21 +54,58 @@ class SmartNet(BaseAgent):
             agent_reward = rewards.loc[agent.name]
             agent.memory.push(agent_obs, agent_action, agent_next_obs, agent_reward)
             
+    @staticmethod
+    def get_cars_on_links(state: dict) -> pd.DataFrame:
+        """
+        Gets the state, and returns a pandas DataFrame containing the number of cars on each link.
+        """
+        cars_number_list = []
+        cars_number_regex = f"Nc___l-..-i."
+        for k,v in state.items():
+            if re.search(cars_number_regex, k):
+                broken = k.split('-')
+                cars_number_list.append({'from': broken[1], 'to': broken[2], 'Nc': v})
+        return pd.DataFrame(cars_number_list)
+
+    def get_cars_on_queues(self, state: dict) -> pd.DataFrame:
+        """
+        Gets the state, and returns a pandas DataFrame containing the number of cars on each queue.
+        """
+        cars_in_q_list = []
+        for j in range(self.size):
+            cars_in_q_regex = f"q___l-..-i{j}__l-i{j}-.."
+            for k,v in state.items():
+                if re.search(cars_in_q_regex, k):
+                    broken = k.split('-')
+                    data = {
+                        'from': broken[1],
+                        'pivot': broken[3],
+                        'to': broken[4],
+                        'q': v
+                    }
+                    if data['to'] != data['from']:
+                        cars_in_q_list.append(data)
+        return pd.DataFrame(cars_in_q_list)
+
+            
     def compute_rewards_from_state(self, state: dict, neighbors_weight: float) -> pd.DataFrame:
         """
         Gets a state, returns a df with the calculated rewards per agent.
         """
+        # TODO track Nc reward as well as q reward.
+        cars_on_queues = self.get_cars_on_queues(state)
+        
         # Calculate self rewards for all the agents
         self_rewards = {}
         for agent in self.agents:
-            self_rewards[agent.name] = agent.calculate_agent_reward_from_state(state)
+            self_rewards[agent.name] = agent.calculate_self_reward_from_q(cars_on_queues)
         self_rewards = pd.Series(self_rewards, name='self')/hpam.REWARD_DOWNSCALE
         
         # Calculate a weighted sum of self and neighboring rewards
         weighted_rewards = self_rewards.copy().rename('weighted')
         for agent in self.agents:
-            for neighbor in agent.neighbors:
-                weighted_rewards.loc[agent.name] += neighbors_weight * self_rewards.loc[neighbor]
+            neighbors_reward = agent.calculate_neighbors_reward(cars_on_queues)
+            weighted_rewards.loc[agent.name] += neighbors_weight * neighbors_reward
                 
         rewards = pd.concat([self_rewards, weighted_rewards], axis=1)
         return rewards

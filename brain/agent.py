@@ -2,6 +2,7 @@ import re
 import torch
 import random
 from gym.spaces import Dict
+import pandas as pd
 from collections import OrderedDict
 from pyRDDLGym.Policies.Agents import BaseAgent
 from brain.dqn import DQN
@@ -59,17 +60,44 @@ class SmartAgent(BaseAgent):
 
         return observations
         
-    def calculate_agent_reward_from_state(self, state: dict) -> float:
+    # def calculate_agent_reward_from_state(self, state: dict) -> float:
+    #     """
+    #     Gets the net state, and calculates the reward for a specific agent.
+    #     The reward is the sum of the Nc in the 4 lanes coming in towards an intersection.
+    #     """
+    #     reward = 0
+    #     cars_number_regex = f"Nc___l-..-{self.name}"
+    #     for k,v in state.items():
+    #         if re.search(cars_number_regex, k):
+    #             reward -= v
+    #     return reward
+    
+    def calculate_self_reward_from_Nc(self, cars_on_links: pd.DataFrame) -> float:
         """
-        Gets the net state, and calculates the reward for a specific agent.
-        The reward is the sum of the Nc in the 4 lanes coming in towards an intersection.
+        Gets a pandas DF with the number of cars on each link.
+        Sums the number of cars entering the junction, and returns it with a minus sign.
         """
-        # TODO - switch reward to q from Nc and analyse.
+        reward = -cars_on_links[cars_on_links['to'] == self.name]['Nc'].sum()
+        return reward
+    
+    def calculate_self_reward_from_q(self, cars_on_queues: pd.DataFrame) -> float:
+        """
+        Gets a pandas DF with the number of cars on each link.
+        Sums the number of cars entering the junction, and returns it with a minus sign.
+        """
+        reward = -cars_on_queues[cars_on_queues['pivot'] == self.name]['q'].sum()
+        return reward
+    
+    def calculate_neighbors_reward(self, cars_on_queues: pd.DataFrame) -> float:
+        """
+        Gets a pandas DF with the number of cars on each queue.
+        For every one of our agent's neighbors, sum up the number of cars ro to our agent.
+        """
         reward = 0
-        cars_number_regex = f"Nc___l-..-{self.name}"
-        for k,v in state.items():
-            if re.search(cars_number_regex, k):
-                reward -= v
+        for neighbor in self.neighbors:
+            going_to_agent_mask = cars_on_queues['to'] == self.name
+            going_from_neighbor_mask = cars_on_queues['pivot'] == neighbor
+            reward -= cars_on_queues[going_to_agent_mask * going_from_neighbor_mask]['q'].sum()
         return reward
     
     def dict_vals_to_tensor(self, d: dict) -> torch.tensor:
