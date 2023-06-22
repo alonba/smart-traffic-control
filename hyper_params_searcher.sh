@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for i in 0 0.2 0.4 0.6 0.8 1 1.2 1.4
+for i in 5 8 10 12 15 20 40 70 100 120
 do
-  python main.py -w $i
+  python main.py -hu $i
 done
