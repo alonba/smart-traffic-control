@@ -17,5 +17,6 @@ TAU = 0.005                             # The update rate of the target network
 IS_SOFT = False                         # Hard or Soft update
 HARD_UPDATE_N = 10                      # Hard update every N episodes
 
+REWARD_TYPE = 'Nc'                       # Wether to use number of cars on link (Nc) or in queue (q) for reward calculation.
 REWARD_DOWNSCALE = 1                    # Down-scaling the reward by this factor, for stabler training process  #TODO later - calculate the downscaling factor
-NEIGHBORS_WEIGHT = 0.4                    # The weight an agent gives to his neighbors' rewards. #TODO maybe sum all neighbors weights to 1 for each agent. Meaning - if an agent has 2 neighbors, beta=0.5. if he has 3->beta=0.3333
+NEIGHBORS_WEIGHT = 0                    # The weight an agent gives to his neighbors' rewards. #TODO maybe sum all neighbors weights to 1 for each agent. Meaning - if an agent has 2 neighbors, beta=0.5. if he has 3->beta=0.3333

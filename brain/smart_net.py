@@ -86,26 +86,31 @@ class SmartNet(BaseAgent):
                     if data['to'] != data['from']:
                         cars_in_q_list.append(data)
         return pd.DataFrame(cars_in_q_list)
-
-            
+    
     def compute_rewards_from_state(self, state: dict, neighbors_weight: float) -> pd.DataFrame:
         """
         Gets a state, returns a df with the calculated rewards per agent.
         """
-        # TODO track Nc reward as well as q reward.
+        # Extract data from state
         cars_on_queues = self.get_cars_on_queues(state)
+        cars_on_links = SmartNet.get_cars_on_links(state)
         
-        # Calculate self rewards for all the agents
-        self_rewards = {}
+        # Calculate agents' self rewards
+        self_rewards_Nc = {}
+        self_rewards_q = {}
         for agent in self.agents:
-            self_rewards[agent.name] = agent.calculate_self_reward_from_q(cars_on_queues)
-        self_rewards = pd.Series(self_rewards, name='self')/hpam.REWARD_DOWNSCALE
+            self_rewards_Nc[agent.name] = agent.calculate_self_reward_from_Nc(cars_on_links)
+            self_rewards_q[agent.name] = agent.calculate_self_reward_from_q(cars_on_queues)
+        self_rewards_Nc = pd.Series(self_rewards_Nc, name='self_Nc')/hpam.REWARD_DOWNSCALE
+        self_rewards_q = pd.Series(self_rewards_q, name='self_q')/hpam.REWARD_DOWNSCALE
         
         # Calculate a weighted sum of self and neighboring rewards
-        weighted_rewards = self_rewards.copy().rename('weighted')
+        if hpam.REWARD_TYPE == 'q':
+            weighted_rewards = self_rewards_q.copy().rename('weighted')
+        else:
+            weighted_rewards = self_rewards_Nc.copy().rename('weighted')
         for agent in self.agents:
             neighbors_reward = agent.calculate_neighbors_reward(cars_on_queues)
             weighted_rewards.loc[agent.name] += neighbors_weight * neighbors_reward
-                
-        rewards = pd.concat([self_rewards, weighted_rewards], axis=1)
+        rewards = pd.concat([self_rewards_Nc, self_rewards_q, weighted_rewards], axis=1)
         return rewards

@@ -36,7 +36,7 @@ env.set_visualizer(viz)
 
 # Initialize the SummaryWriter for TensorBoard. Its output will be written to ./runs/
 if hpam.LEARN:
-    run_name = f'{aux.now()}_{hpam.GRID_SIZE}_Width{hpam.NET_WIDTH}_Explore{hpam.EXPLORE_CHANCE}_Beta{args.neighbor_weights}'
+    run_name = f'{aux.now()}_{hpam.GRID_SIZE}_Reward-{hpam.REWARD_TYPE}_Explore{hpam.EXPLORE_CHANCE}_Beta{args.neighbor_weights}'
 else:
     run_name = f'Analyze_{smart_net_name}'
 writer = SmartWriter(run_name)
@@ -47,7 +47,8 @@ if __name__=="__main__":
     for episode in range(hpam.EPISODES_NUM):
         # Initialize env
         total_losses = 0
-        total_rewards = 0
+        total_rewards_q = 0
+        total_rewards_Nc = 0
         state = env.reset()
         
         # Run simulation
@@ -65,7 +66,8 @@ if __name__=="__main__":
             # Calculate rewards
             # TODO Why is the centralized reward different than summed computed rewards
             rewards = smart_net.compute_rewards_from_state(next_state, args.neighbor_weights)
-            total_rewards += rewards['self']
+            total_rewards_q += rewards['self_q']
+            total_rewards_Nc += rewards['self_Nc']
             
             # Store the transition in memory
             if hpam.LEARN:
@@ -85,8 +87,9 @@ if __name__=="__main__":
         if hpam.LEARN:
             writer.rewards_or_losses(smart_net, 'Loss', total_losses, episode)
             writer.weight_histograms(smart_net, episode)
-        writer.rewards_or_losses(smart_net, 'Reward', total_rewards, episode)
-        episode_total_reward = total_rewards.sum()
+        writer.rewards_or_losses(smart_net, 'Reward-q', total_rewards_q, episode)
+        writer.rewards_or_losses(smart_net, 'Reward-Nc', total_rewards_Nc, episode)
+        episode_total_reward = total_rewards_q.sum()
         reward_list.append(episode_total_reward)
         print(f"Episode {episode + 1} ended with reward {episode_total_reward}")
         env.close()
