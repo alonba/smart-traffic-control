@@ -21,7 +21,9 @@ class SmartNet(BaseAgent):
         """
         actions = {}
         for agent in self.agents:
-            agent_obs = SmartAgent.filter_agent_obs_from_net_state(agent.name, state)
+            # agent_obs = SmartAgent.filter_agent_obs_from_net_state(agent.name, state)
+            agent_obs = agent.filter_agent_and_neighbor_obs_from_net_state(state)
+
             actions.update(agent.sample_action(agent_obs))
             # actions |= agent.sample_action(agent_obs)
         
@@ -60,7 +62,7 @@ class SmartNet(BaseAgent):
         Gets the state, and returns a pandas DataFrame containing the number of cars on each link.
         """
         cars_number_list = []
-        cars_number_regex = f"Nc___l-..-i."
+        cars_number_regex = f"Nc___l-.\d+-i\d+"
         for k,v in state.items():
             if re.search(cars_number_regex, k):
                 broken = k.split('-')
@@ -73,7 +75,7 @@ class SmartNet(BaseAgent):
         """
         cars_in_q_list = []
         for j in range(self.size):
-            cars_in_q_regex = f"q___l-..-i{j}__l-i{j}-.."
+            cars_in_q_regex = f"q___l-.\d+-i{j}__l-i{j}-.\d+"
             for k,v in state.items():
                 if re.search(cars_in_q_regex, k):
                     broken = k.split('-')

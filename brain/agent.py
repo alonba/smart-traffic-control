@@ -16,9 +16,9 @@ class SmartAgent(BaseAgent):
     def __init__(self, name: str, net_action_space: Dict, net_state: Dict) -> None:
         self.name = name
         self.action_space = Dict(SmartAgent.filter_agent_dict_from_net_dict(self.name, net_action_space))
-        self.observation_space = Dict(SmartAgent.filter_agent_obs_from_net_state(self.name, net_state))
         self.neighbors = self.get_neighbors(net_state)
-        
+        self.observation_space = Dict(self.filter_agent_and_neighbor_obs_from_net_state(net_state))
+
         n_observations = len(self.observation_space.spaces)
         n_actions = len(self.action_space)
         
@@ -39,15 +39,44 @@ class SmartAgent(BaseAgent):
             if agent_name in k:
                 agent_dict[k] = v
         return agent_dict
-    
+
+    def filter_neighbors_obs_from_net_state(self, net_state) -> dict:
+        """
+        Gets the smart_net state, and returns the observation space of the neighbors of the agent.
+        # TODO improve implementation. not efficient.
+        """
+        to_agent_regex = f"^q___l-.\d+-.\d+__l-.\d+-{self.name}"
+        signal_obs = 'signal'
+
+        neighbors_state = {}
+        for neighbor in self.neighbors:
+            original_neighbor_state = SmartAgent.filter_agent_obs_from_net_state(neighbor, net_state)
+            new_neighbor_state = original_neighbor_state.copy()
+            for k in original_neighbor_state.keys():
+                if not re.search(to_agent_regex, k) and signal_obs not in k:
+                    del new_neighbor_state[k]
+            neighbors_state.update(new_neighbor_state)
+
+        return neighbors_state
+
+    def filter_agent_and_neighbor_obs_from_net_state(self, net_state) -> dict:
+        """
+        Gets the smart_net state, and returns the obs space for the agent.
+        The obs space of the agent also includes the neighbor's hand-picked observations.
+        """
+        agent_state = SmartAgent.filter_agent_obs_from_net_state(self.name, net_state)
+        neighbors_state = self.filter_neighbors_obs_from_net_state(net_state)
+        agent_state.update(neighbors_state)
+        return agent_state
+
     @staticmethod
     def filter_agent_obs_from_net_state(agent_name: str, net_state) -> dict:
         """
-        Get only the 'signal', 'signal_t' and 'q' fluents relevant to the specific agent.
+        Returns only the 'signal', 'signal_t' and 'q' fluents relevant to the specific agent.
         The q fluents relevant are queues incoming to intersection, and going from it.
         """
         signal_obs = 'signal'
-        q_regex = f"^q___l-..-{agent_name}__l-{agent_name}-.."
+        q_regex = f"^q___l-.\d+-{agent_name}__l-{agent_name}-.\d+"
         
         observations = {}
         for k,v in net_state.items():
@@ -66,7 +95,7 @@ class SmartAgent(BaseAgent):
     #     The reward is the sum of the Nc in the 4 lanes coming in towards an intersection.
     #     """
     #     reward = 0
-    #     cars_number_regex = f"Nc___l-..-{self.name}"
+    #     cars_number_regex = f"Nc___l-.\d+-{self.name}"
     #     for k,v in state.items():
     #         if re.search(cars_number_regex, k):
     #             reward -= v
@@ -117,7 +146,6 @@ class SmartAgent(BaseAgent):
         vals_list = [list(d.values()) for d in tuple_of_dicts]
         return torch.tensor(vals_list, device=self.device, dtype=output_type)
 
-        
     def sample_action(self, state: dict) -> dict:
         """
         Infer from DQN (policy net), or explore the possible actions, with a pre-set probability.
@@ -204,12 +232,12 @@ class SmartAgent(BaseAgent):
         policy_net_state_dict = self.policy_net.state_dict()
         self.target_net.load_state_dict(policy_net_state_dict)
         
-    def get_neighbors(self, state: dict) -> float:
+    def get_neighbors(self, state: Dict) -> list:
         """
         Extract the intercsetion's neighbours from the state.
         """
         neighbors = []
-        neighbors_regex = f"Nc___l-i.-{self.name}"
+        neighbors_regex = f"Nc___l-i\d+-{self.name}"
         for k,v in state.items():
             if re.search(neighbors_regex, k):
                 neighbor_name = k.split('-')[1]
