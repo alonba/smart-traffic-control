@@ -36,7 +36,7 @@ env.set_visualizer(viz)
 
 # Initialize the SummaryWriter for TensorBoard. Its output will be written to ./runs/
 if hpam.LEARN:
-    run_name = f'{aux.now()}_{hpam.GRID_SIZE}_Reward-{hpam.REWARD_TYPE}_Explore{hpam.EXPLORE_CHANCE}_Beta{args.neighbor_weights}'
+    run_name = f'{aux.now()}_{hpam.GRID_SIZE}_Reward-{hpam.REWARD_TYPE}_Explore{hpam.EXPLORE_CHANCE}_Beta{args.neighbor_weights}_Hard{args.hard_update}'
 else:
     run_name = f'Analyze_{smart_net_name}'
 writer = SmartWriter(run_name)
