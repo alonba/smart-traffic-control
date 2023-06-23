@@ -18,12 +18,11 @@ class SmartNet(BaseAgent):
         """
         Get the actions for each node (agent).
         Return a dictionary with all the chosen actions.
+        TODO possible make it more efficient
         """
         actions = {}
         for agent in self.agents:
-            # agent_obs = SmartAgent.filter_agent_obs_from_net_state(agent.name, state)
             agent_obs = agent.filter_agent_and_neighbor_obs_from_net_state(state)
-
             actions.update(agent.sample_action(agent_obs))
             # actions |= agent.sample_action(agent_obs)
         
@@ -50,9 +49,9 @@ class SmartNet(BaseAgent):
                 
     def remember(self, net_state: dict, net_action: dict, net_next_state: dict, rewards: pd.Series) -> None:
         for agent in self.agents:
-            agent_obs = SmartAgent.filter_agent_obs_from_net_state(agent.name, net_state)
+            agent_obs = agent.filter_agent_and_neighbor_obs_from_net_state(net_state)
             agent_action = SmartAgent.filter_agent_dict_from_net_dict(agent.name, net_action)
-            agent_next_obs = SmartAgent.filter_agent_obs_from_net_state(agent.name, net_next_state)
+            agent_next_obs = agent.filter_agent_and_neighbor_obs_from_net_state(net_next_state)
             agent_reward = rewards.loc[agent.name]
             agent.memory.push(agent_obs, agent_action, agent_next_obs, agent_reward)
             
