@@ -30,7 +30,7 @@ class SmartWriter(SummaryWriter):
         Writes the nets structure to TensorBoard
         """
         for agent in smart_net.agents:
-            agent_obs = agent.filter_agent_obs_from_net_state(agent.name, state)
+            agent_obs = agent.filter_agent_and_neighbor_obs_from_net_state(state)
             agent_obs_tensor = agent.dict_vals_to_tensor(agent_obs)
             self.add_graph(agent.policy_net, agent_obs_tensor)
             self.add_graph(agent.target_net, agent_obs_tensor)
