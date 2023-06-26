@@ -6,11 +6,11 @@ from brain.agent import SmartAgent
 import brain.hyper_params as hpam
 
 class SmartNet(BaseAgent):
-    def __init__(self, nodes_num: int, net_obs_space: Dict, net_action_space: Dict) -> None:
+    def __init__(self, nodes_num: int, net_obs_space: Dict, net_action_space: Dict, neighbors_weight: float) -> None:
         self.size = nodes_num
         agents = []
         for i in range(nodes_num):
-            agent = SmartAgent(f"i{i}", net_action_space, net_obs_space)
+            agent = SmartAgent(f"i{i}", net_action_space, net_obs_space, neighbors_weight)
             agents.append(agent)
         self.agents = agents
         
@@ -88,7 +88,7 @@ class SmartNet(BaseAgent):
                         cars_in_q_list.append(data)
         return pd.DataFrame(cars_in_q_list)
     
-    def compute_rewards_from_state(self, state: dict, neighbors_weight: float) -> pd.DataFrame:
+    def compute_rewards_from_state(self, state: dict) -> pd.DataFrame:
         """
         Gets a state, returns a df with the calculated rewards per agent.
         """
@@ -112,6 +112,6 @@ class SmartNet(BaseAgent):
             weighted_rewards = self_rewards_Nc.copy().rename('weighted')
         for agent in self.agents:
             neighbors_reward = agent.calculate_neighbors_reward(cars_on_queues)
-            weighted_rewards.loc[agent.name] += neighbors_weight * neighbors_reward
+            weighted_rewards.loc[agent.name] += agent.neighbors_weight * neighbors_reward
         rewards = pd.concat([self_rewards_Nc, self_rewards_q, weighted_rewards], axis=1)
         return rewards

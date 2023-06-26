@@ -13,7 +13,7 @@ start_time = datetime.datetime.now()
 # Search hpams by bash script
 parser = argparse.ArgumentParser(description='Run smart traffic control simulation')
 parser.add_argument('-hu', '--hard_update', type=int, default=hpam.HARD_UPDATE_N, help='Hard update once every N episodes')
-parser.add_argument('-w', '--neighbor_weights', type=float, default=hpam.NEIGHBORS_WEIGHT, help='Weight of neighbors rewards')
+parser.add_argument('-w', '--neighbors_weight', type=float, default=hpam.NEIGHBORS_WEIGHT, help='Weight of neighbors rewards')
 # parser.add_argument('-e', '--explore', type=float, default=hpam.EXPLORE_CHANCE, help='Exploration probability')
 args = parser.parse_args()
 
@@ -25,7 +25,12 @@ num_of_nodes_in_grid = len(env.model.objects['intersection'])
 
 # Init agents (a net holds agents, one for each node)
 if hpam.LEARN:
-    smart_net = SmartNet(nodes_num=num_of_nodes_in_grid, net_obs_space=env.observation_space, net_action_space=env.action_space)
+    smart_net = SmartNet(
+        nodes_num=num_of_nodes_in_grid, 
+        net_obs_space=env.observation_space, 
+        net_action_space=env.action_space, 
+        neighbors_weight=args.neighbors_weight
+        )
 else:   # Use pre-trained net for performance analysis
     smart_net_name = 'May30_17-41_ET-0H-1M-56S'
     smart_net = aux.load_from_pickle(f'output/{smart_net_name}/smart_net')
@@ -36,7 +41,7 @@ env.set_visualizer(viz)
 
 # Initialize the SummaryWriter for TensorBoard. Its output will be written to ./runs/
 if hpam.LEARN:
-    run_name = f'{aux.now()}_{hpam.GRID_SIZE}_Reward-{hpam.REWARD_TYPE}_Explore{hpam.EXPLORE_CHANCE}_Beta{args.neighbor_weights}_Hard{args.hard_update}'
+    run_name = f'{aux.now()}_{hpam.GRID_SIZE}_Reward-{hpam.REWARD_TYPE}_Explore{hpam.EXPLORE_CHANCE}_Beta{args.neighbors_weight}_Hard{args.hard_update}'
 else:
     run_name = f'Analyze_{smart_net_name}'
 writer = SmartWriter(run_name)
@@ -65,7 +70,7 @@ if __name__=="__main__":
             
             # Calculate rewards
             # TODO Why is the centralized reward different than summed computed rewards
-            rewards = smart_net.compute_rewards_from_state(next_state, args.neighbor_weights)
+            rewards = smart_net.compute_rewards_from_state(next_state)
             total_rewards_q += rewards['self_q']
             total_rewards_Nc += rewards['self_Nc']
             

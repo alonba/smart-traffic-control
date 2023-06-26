@@ -13,10 +13,11 @@ class SmartAgent(BaseAgent):
     """
     A smart agent is a single traffic light.
     """
-    def __init__(self, name: str, net_action_space: Dict, net_state: Dict) -> None:
+    def __init__(self, name: str, net_action_space: Dict, net_state: Dict, neighbors_weight: float) -> None:
         self.name = name
         self.action_space = Dict(SmartAgent.filter_agent_dict_from_net_dict(self.name, net_action_space))
         self.neighbors = self.get_neighbors(net_state)
+        self.neighbors_weight = neighbors_weight / len(self.neighbors)
         self.observation_space = Dict(self.filter_agent_and_neighbor_obs_from_net_state(net_state))
 
         n_observations = len(self.observation_space.spaces)
