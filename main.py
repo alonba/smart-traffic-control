@@ -65,7 +65,7 @@ if __name__=="__main__":
             action = smart_net.sample_action(state)
             
             # Make a step
-            aux.print_progress(step, 50, 'Step')
+            aux.print_progress(step, 100, 'Step')
             next_state, centralized_reward, done, info = env.step(action)
             
             # Calculate rewards
@@ -84,7 +84,7 @@ if __name__=="__main__":
         # Train the networks
         # if hpam.LEARN:
         for update in range(hpam.UPDATES):
-            aux.print_progress(update, 25, 'Update')
+            aux.print_progress(update, 50, 'Update')
             losses = smart_net.train(episode, args.hard_update)
             total_losses += losses
             
