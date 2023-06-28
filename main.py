@@ -24,26 +24,26 @@ env = RDDLEnv.RDDLEnv(domain=domain, instance=instance)
 num_of_nodes_in_grid = len(env.model.objects['intersection'])
 
 # Init agents (a net holds agents, one for each node)
-if hpam.LEARN:
-    smart_net = SmartNet(
-        nodes_num=num_of_nodes_in_grid, 
-        net_obs_space=env.observation_space, 
-        net_action_space=env.action_space, 
-        neighbors_weight=args.neighbors_weight
-        )
-else:   # Use pre-trained net for performance analysis
-    smart_net_name = 'May30_17-41_ET-0H-1M-56S'
-    smart_net = aux.load_from_pickle(f'output/{smart_net_name}/smart_net')
+# if hpam.LEARN:
+smart_net = SmartNet(
+    nodes_num=num_of_nodes_in_grid, 
+    net_obs_space=env.observation_space, 
+    net_action_space=env.action_space, 
+    neighbors_weight=args.neighbors_weight
+    )
+# else:   # Use pre-trained net for performance analysis
+#     smart_net_name = 'May30_17-41_ET-0H-1M-56S'
+#     smart_net = aux.load_from_pickle(f'output/{smart_net_name}/smart_net')
 
 # Set visualizer
 viz = ExampleManager.GetEnvInfo('Traffic').get_visualizer()
 env.set_visualizer(viz)
 
 # Initialize the SummaryWriter for TensorBoard. Its output will be written to ./runs/
-if hpam.LEARN:
-    run_name = f'{aux.now()}_{hpam.GRID_SIZE}_Reward-{hpam.REWARD_TYPE}_Explore{hpam.EXPLORE_CHANCE}_Beta{args.neighbors_weight}_Hard{args.hard_update}'
-else:
-    run_name = f'Analyze_{smart_net_name}'
+# if hpam.LEARN:
+run_name = f'{aux.now()}_{hpam.GRID_SIZE}_Reward-{hpam.REWARD_TYPE}_Explore{hpam.EXPLORE_CHANCE}_Beta{args.neighbors_weight}_Hard{args.hard_update}'
+# else:
+#     run_name = f'Analyze_{smart_net_name}'
 writer = SmartWriter(run_name)
 
  
@@ -75,23 +75,23 @@ if __name__=="__main__":
             total_rewards_Nc += rewards['self_Nc']
             
             # Store the transition in memory
-            if hpam.LEARN:
-                smart_net.remember(state, action, next_state, rewards['weighted'])
+            # if hpam.LEARN:
+            smart_net.remember(state, action, next_state, rewards['weighted'])
             
             # Progress to the next step
             state = next_state
             
         # Train the networks
-        if hpam.LEARN:
-            for update in range(hpam.UPDATES):
-                aux.print_progress(update, 25, 'Update')
-                losses = smart_net.train(episode, args.hard_update)
-                total_losses += losses
+        # if hpam.LEARN:
+        for update in range(hpam.UPDATES):
+            aux.print_progress(update, 25, 'Update')
+            losses = smart_net.train(episode, args.hard_update)
+            total_losses += losses
             
         # Finish episode
-        if hpam.LEARN:
-            writer.rewards_or_losses(smart_net, 'Loss', total_losses, episode)
-            writer.weight_histograms(smart_net, episode)
+        # if hpam.LEARN:
+        writer.weight_histograms(smart_net, episode)
+        writer.rewards_or_losses(smart_net, 'Loss', total_losses, episode)
         writer.rewards_or_losses(smart_net, 'Reward-q', total_rewards_q, episode)
         writer.rewards_or_losses(smart_net, 'Reward-Nc', total_rewards_Nc, episode)
         episode_total_reward = total_rewards_q.sum()
@@ -106,7 +106,7 @@ if __name__=="__main__":
     aux.save_to_pickle(smart_net, output_dir + '/smart_net')
     
     # Save graphs of models to TensorBoard
-    if hpam.LEARN:
-        writer.graphs(smart_net, state)
+    # if hpam.LEARN:
+    writer.graphs(smart_net, state)
     
     end_of_file = True
