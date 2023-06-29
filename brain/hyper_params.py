@@ -21,3 +21,4 @@ HARD_UPDATE_N = 12                      # Hard update every N episodes
 REWARD_TYPE = 'q'                       # Wether to use number of cars on link (Nc) or in queue (q) for reward calculation.
 REWARD_DOWNSCALE = 1                    # Down-scaling the reward by this factor, for stabler training process  #TODO later - calculate the downscaling factor
 NEIGHBORS_WEIGHT = 1                    # The weight an agent gives to his neighbors' rewards. Sums all neighbors weights to 1 for each agent. Meaning - if an agent has 2 neighbors, beta=0.5. if he has 3->beta=0.3333
+SHARE_STATE = False

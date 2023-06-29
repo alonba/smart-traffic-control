@@ -66,8 +66,9 @@ class SmartAgent(BaseAgent):
         The obs space of the agent also includes the neighbor's hand-picked observations.
         """
         agent_state = SmartAgent.filter_agent_obs_from_net_state(self.name, net_state)
-        neighbors_state = self.filter_neighbors_obs_from_net_state(net_state)
-        agent_state.update(neighbors_state)
+        if hpam.SHARE_STATE:
+            neighbors_state = self.filter_neighbors_obs_from_net_state(net_state)
+            agent_state.update(neighbors_state)
         return agent_state
 
     @staticmethod
