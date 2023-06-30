@@ -1,7 +1,7 @@
 # LEARN = True                            # Learn or Analyze   # TODO After training the smart_net, analyze mode produces the same reward every episode, as training is disabled. Maybe i misunderstood the explore=0 instruction.
 
-GRID_SIZE = '1x2'                       # The grid topology: rows x columns
-EPISODES_NUM = 2000                     # Number of episodes in the simulation
+GRID_SIZE = '1x3'                       # The grid topology: rows x columns
+EPISODES_NUM = 10000                     # Number of episodes in the simulation
 UPDATES = 100                           # Number of updates taken every episode
 
 MEMORY_SIZE = 10 ** 5                   # The size (number of transitions) of the replay memory buffer # TODO raise to 10^6. Although - a big buffer causes overuse -> overweighting of early samples COULD BE SOLVED BY INITIATING THE BUFFER WITH DATA
@@ -21,4 +21,4 @@ HARD_UPDATE_N = 12                      # Hard update every N episodes
 REWARD_TYPE = 'q'                       # Wether to use number of cars on link (Nc) or in queue (q) for reward calculation.
 REWARD_DOWNSCALE = 1                    # Down-scaling the reward by this factor, for stabler training process  #TODO later - calculate the downscaling factor
 NEIGHBORS_WEIGHT = 1                    # The weight an agent gives to his neighbors' rewards. Sums all neighbors weights to 1 for each agent. Meaning - if an agent has 2 neighbors, beta=0.5. if he has 3->beta=0.3333
-SHARE_STATE = False
+SHARE_STATE = False                     # Wether to share the neighbor's state or not.

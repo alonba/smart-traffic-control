@@ -47,7 +47,6 @@ run_name = f'\
 Reward-{hpam.REWARD_TYPE}_\
 Explore{hpam.EXPLORE_CHANCE}_\
 Beta{args.neighbors_weight}_\
-Hard{args.hard_update}_\
 StateShare-{hpam.SHARE_STATE}\
 '
 # else:
