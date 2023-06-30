@@ -6,7 +6,6 @@ from brain.agent import SmartAgent
 import brain.hyper_params as hpam
 
 class SmartNet(BaseAgent):
-    # TODO Did we deal with the 1x1 no neighbors grid option?
     def __init__(self, nodes_num: int, net_obs_space: Dict, net_action_space: Dict, neighbors_weight: float) -> None:
         self.size = nodes_num
         agents = {}

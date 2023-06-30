@@ -1,0 +1,206 @@
+non-fluents grid_1x1 {
+    domain = BLX_model;
+
+    objects {
+        intersection : {i0};
+        link         : {l-i0-s0, l-i0-s1, l-i0-s2, l-i0-s3, l-s0-i0, l-s2-i0, l-s3-i0, l-s1-i0};
+        time         : {t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17, t18, t19, t20, t21, t22, t23, t24, t25, t26};
+    };
+
+    non-fluents {
+        //sources
+        SOURCE(l-s3-i0);
+        SOURCE(l-s1-i0);
+        SOURCE(l-s0-i0);
+        SOURCE(l-s2-i0);
+        //sinks
+        SINK(l-i0-s3);
+        SINK(l-i0-s1);
+        SINK(l-i0-s0);
+        SINK(l-i0-s2);
+        //satflow rates
+        MU(l-s3-i0,l-i0-s1) = 1.06;
+        MU(l-s3-i0,l-i0-s0) = 0.636;
+        MU(l-s3-i0,l-i0-s2) = 0.42400000000000004;
+        MU(l-s1-i0,l-i0-s3) = 1.06;
+        MU(l-s0-i0,l-i0-s1) = 0.636;
+        MU(l-s2-i0,l-i0-s1) = 0.42400000000000004;
+        MU(l-s0-i0,l-i0-s2) = 1.06;
+        MU(l-s1-i0,l-i0-s2) = 0.636;
+        MU(l-s1-i0,l-i0-s0) = 0.42400000000000004;
+        MU(l-s2-i0,l-i0-s0) = 1.06;
+        MU(l-s2-i0,l-i0-s3) = 0.636;
+        MU(l-s0-i0,l-i0-s3) = 0.42400000000000004;
+        //turn probabilities
+        BETA(l-s3-i0,l-i0-s1) = 0.6568387070146329;
+        BETA(l-s3-i0,l-i0-s0) = 0.24316129298536712;
+        BETA(l-s3-i0,l-i0-s2) = 0.1;
+        BETA(l-s1-i0,l-i0-s3) = 0.6370303354329176;
+        BETA(l-s0-i0,l-i0-s1) = 0.2629696645670823;
+        BETA(l-s2-i0,l-i0-s1) = 0.10000000000000003;
+        BETA(l-s0-i0,l-i0-s2) = 0.7623326883336465;
+        BETA(l-s1-i0,l-i0-s2) = 0.13766731166635338;
+        BETA(l-s1-i0,l-i0-s0) = 0.10000000000000009;
+        BETA(l-s2-i0,l-i0-s0) = 0.7783189406134221;
+        BETA(l-s2-i0,l-i0-s3) = 0.12168105938657788;
+        BETA(l-s0-i0,l-i0-s3) = 0.10000000000000002;
+        //link lengths
+        Dl(l-i0-s0) = 335.0;
+        Dl(l-i0-s1) = 237.0;
+        Dl(l-i0-s2) = 265.0;
+        Dl(l-i0-s3) = 248.0;
+        Dl(l-s0-i0) = 335.0;
+        Dl(l-s2-i0) = 265.0;
+        Dl(l-s3-i0) = 248.0;
+        Dl(l-s1-i0) = 237.0;
+        //source arrival rates
+        SOURCE-ARRIVAL-RATE(l-s0-i0) = 0.35;
+        SOURCE-ARRIVAL-RATE(l-s2-i0) = 0.3;
+        SOURCE-ARRIVAL-RATE(l-s3-i0) = 0.35;
+        SOURCE-ARRIVAL-RATE(l-s1-i0) = 0.29;
+        
+        //intersection i0
+        //turns
+        TURN(l-s1-i0,l-i0-s0);
+        TURN(l-s1-i0,l-i0-s3);
+        TURN(l-s1-i0,l-i0-s2);
+        TURN(l-s0-i0,l-i0-s3);
+        TURN(l-s0-i0,l-i0-s2);
+        TURN(l-s0-i0,l-i0-s1);
+        TURN(l-s3-i0,l-i0-s2);
+        TURN(l-s3-i0,l-i0-s1);
+        TURN(l-s3-i0,l-i0-s0);
+        TURN(l-s2-i0,l-i0-s1);
+        TURN(l-s2-i0,l-i0-s0);
+        TURN(l-s2-i0,l-i0-s3);
+        //link-to
+        LINK-TO(l-s1-i0,i0);
+        LINK-TO(l-s0-i0,i0);
+        LINK-TO(l-s3-i0,i0);
+        LINK-TO(l-s2-i0,i0);
+        //link-from
+        LINK-FROM(i0,l-i0-s1);
+        LINK-FROM(i0,l-i0-s0);
+        LINK-FROM(i0,l-i0-s3);
+        LINK-FROM(i0,l-i0-s2);
+        //phase properties
+        PHASE-MIN(i0) = 7;
+        PHASE-MAX(i0) = 60;
+        PHASE-ALL-RED-DUR(i0) = 4;
+        //green turns
+        GREEN(l-s1-i0,l-i0-s2,@WEST-EAST-LEFT);
+        GREEN(l-s3-i0,l-i0-s0,@WEST-EAST-LEFT);
+        GREEN(l-s1-i0,l-i0-s3,@WEST-EAST-THROUGH);
+        GREEN(l-s3-i0,l-i0-s1,@WEST-EAST-THROUGH);
+        GREEN(l-s0-i0,l-i0-s1,@NORTH-SOUTH-LEFT);
+        GREEN(l-s2-i0,l-i0-s3,@NORTH-SOUTH-LEFT);
+        GREEN(l-s0-i0,l-i0-s2,@NORTH-SOUTH-THROUGH);
+        GREEN(l-s2-i0,l-i0-s0,@NORTH-SOUTH-THROUGH);
+        GREEN(l-s1-i0,l-i0-s0,@WEST-EAST-LEFT);
+        GREEN(l-s1-i0,l-i0-s0,@WEST-EAST-THROUGH);
+        GREEN(l-s1-i0,l-i0-s0,@NORTH-SOUTH-LEFT);
+        GREEN(l-s1-i0,l-i0-s0,@NORTH-SOUTH-THROUGH);
+        GREEN(l-s0-i0,l-i0-s3,@WEST-EAST-LEFT);
+        GREEN(l-s0-i0,l-i0-s3,@WEST-EAST-THROUGH);
+        GREEN(l-s0-i0,l-i0-s3,@NORTH-SOUTH-LEFT);
+        GREEN(l-s0-i0,l-i0-s3,@NORTH-SOUTH-THROUGH);
+        GREEN(l-s3-i0,l-i0-s2,@WEST-EAST-LEFT);
+        GREEN(l-s3-i0,l-i0-s2,@WEST-EAST-THROUGH);
+        GREEN(l-s3-i0,l-i0-s2,@NORTH-SOUTH-LEFT);
+        GREEN(l-s3-i0,l-i0-s2,@NORTH-SOUTH-THROUGH);
+        GREEN(l-s2-i0,l-i0-s1,@WEST-EAST-LEFT);
+        GREEN(l-s2-i0,l-i0-s1,@WEST-EAST-THROUGH);
+        GREEN(l-s2-i0,l-i0-s1,@NORTH-SOUTH-LEFT);
+        GREEN(l-s2-i0,l-i0-s1,@NORTH-SOUTH-THROUGH);
+        GREEN(l-s1-i0,l-i0-s0,@ALL-RED);
+        GREEN(l-s1-i0,l-i0-s0,@ALL-RED2);
+        GREEN(l-s1-i0,l-i0-s0,@ALL-RED3);
+        GREEN(l-s1-i0,l-i0-s0,@ALL-RED4);
+        GREEN(l-s0-i0,l-i0-s3,@ALL-RED);
+        GREEN(l-s0-i0,l-i0-s3,@ALL-RED2);
+        GREEN(l-s0-i0,l-i0-s3,@ALL-RED3);
+        GREEN(l-s0-i0,l-i0-s3,@ALL-RED4);
+        GREEN(l-s3-i0,l-i0-s2,@ALL-RED);
+        GREEN(l-s3-i0,l-i0-s2,@ALL-RED2);
+        GREEN(l-s3-i0,l-i0-s2,@ALL-RED3);
+        GREEN(l-s3-i0,l-i0-s2,@ALL-RED4);
+        GREEN(l-s2-i0,l-i0-s1,@ALL-RED);
+        GREEN(l-s2-i0,l-i0-s1,@ALL-RED2);
+        GREEN(l-s2-i0,l-i0-s1,@ALL-RED3);
+        GREEN(l-s2-i0,l-i0-s1,@ALL-RED4);
+        // time-delay properties
+        TIME-HEAD(t0);
+        TIME-TAIL(t26);
+        TIME-VAL(t0) = 0;
+        TIME-VAL(t1) = 1;
+        TIME-VAL(t2) = 2;
+        TIME-VAL(t3) = 3;
+        TIME-VAL(t4) = 4;
+        TIME-VAL(t5) = 5;
+        TIME-VAL(t6) = 6;
+        TIME-VAL(t7) = 7;
+        TIME-VAL(t8) = 8;
+        TIME-VAL(t9) = 9;
+        TIME-VAL(t10) = 10;
+        TIME-VAL(t11) = 11;
+        TIME-VAL(t12) = 12;
+        TIME-VAL(t13) = 13;
+        TIME-VAL(t14) = 14;
+        TIME-VAL(t15) = 15;
+        TIME-VAL(t16) = 16;
+        TIME-VAL(t17) = 17;
+        TIME-VAL(t18) = 18;
+        TIME-VAL(t19) = 19;
+        TIME-VAL(t20) = 20;
+        TIME-VAL(t21) = 21;
+        TIME-VAL(t22) = 22;
+        TIME-VAL(t23) = 23;
+        TIME-VAL(t24) = 24;
+        TIME-VAL(t25) = 25;
+        TIME-VAL(t26) = 26;
+        NEXT(t0,t1);
+        NEXT(t1,t2);
+        NEXT(t2,t3);
+        NEXT(t3,t4);
+        NEXT(t4,t5);
+        NEXT(t5,t6);
+        NEXT(t6,t7);
+        NEXT(t7,t8);
+        NEXT(t8,t9);
+        NEXT(t9,t10);
+        NEXT(t10,t11);
+        NEXT(t11,t12);
+        NEXT(t12,t13);
+        NEXT(t13,t14);
+        NEXT(t14,t15);
+        NEXT(t15,t16);
+        NEXT(t16,t17);
+        NEXT(t17,t18);
+        NEXT(t18,t19);
+        NEXT(t19,t20);
+        NEXT(t20,t21);
+        NEXT(t21,t22);
+        NEXT(t22,t23);
+        NEXT(t23,t24);
+        NEXT(t24,t25);
+        NEXT(t25,t26);
+        //cartesian coordinates (for visualization)
+        X(i0) = 248.0; Y(i0) = 265.0;
+        SOURCE-X(l-s3-i0) = 0.0; SOURCE-Y(l-s3-i0) = 265.0;
+        SOURCE-X(l-s1-i0) = 485.0; SOURCE-Y(l-s1-i0) = 265.0;
+        SINK-X(l-i0-s3) = 0.0; SINK-Y(l-i0-s3) = 265.0;
+        SINK-X(l-i0-s1) = 485.0; SINK-Y(l-i0-s1) = 265.0;
+        SOURCE-X(l-s0-i0) = 248.0; SOURCE-Y(l-s0-i0) = 600.0;
+        SOURCE-X(l-s2-i0) = 248.0; SOURCE-Y(l-s2-i0) = 0.0;
+        SINK-X(l-i0-s0) = 248.0; SINK-Y(l-i0-s0) = 600.0;
+        SINK-X(l-i0-s2) = 248.0; SINK-Y(l-i0-s2) = 0.0;
+    };
+}
+
+instance grid_1x1 {
+    domain = BLX_model;
+    non-fluents = grid_1x1;
+    max-nondef-actions = 1;
+    horizon = 200;
+    discount = 1.0;
+}

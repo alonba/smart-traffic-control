@@ -17,7 +17,7 @@ class SmartAgent(BaseAgent):
         self.name = name
         self.action_space = Dict(self.filter_agent_dict_from_net_dict(net_action_space))
         self.neighbors = self.get_neighbors(net_state)
-        self.neighbors_weight = neighbors_weight / len(self.neighbors)
+        self.neighbors_weight = (neighbors_weight / len(self.neighbors)) if (len(self.neighbors) > 0) else 0
         self.observation_space = Dict(self.filter_agent_and_neighbors_obs_space_from_net_obs_space(net_state))
 
         n_observations = len(self.observation_space.spaces)
