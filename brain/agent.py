@@ -15,10 +15,10 @@ class SmartAgent(BaseAgent):
     """
     def __init__(self, name: str, net_action_space: Dict, net_state: Dict, neighbors_weight: float) -> None:
         self.name = name
-        self.action_space = Dict(SmartAgent.filter_agent_dict_from_net_dict(self.name, net_action_space))
+        self.action_space = Dict(self.filter_agent_dict_from_net_dict(net_action_space))
         self.neighbors = self.get_neighbors(net_state)
         self.neighbors_weight = neighbors_weight / len(self.neighbors)
-        self.observation_space = Dict(self.filter_agent_and_neighbor_obs_from_net_state(net_state))
+        self.observation_space = Dict(self.filter_agent_and_neighbors_obs_space_from_net_obs_space(net_state))
 
         n_observations = len(self.observation_space.spaces)
         n_actions = len(self.action_space)
@@ -33,46 +33,25 @@ class SmartAgent(BaseAgent):
         self.memory = ReplayMemory(hpam.MEMORY_SIZE)
         self.criterion = torch.nn.SmoothL1Loss()
     
-    @staticmethod
-    def filter_agent_dict_from_net_dict(agent_name: str, net_dict) -> dict:
+    def filter_agent_dict_from_net_dict(self, net_dict) -> dict:
         agent_dict = {}
         for k,v in net_dict.items():
-            if agent_name in k:
+            if self.name in k:
                 agent_dict[k] = v
         return agent_dict
-
-    def filter_neighbors_obs_from_net_state(self, net_state) -> dict:
+    
+    def filter_agent_state_from_net_state(self, net_state) -> dict:
         """
-        Gets the smart_net state, and returns the observation space of the neighbors of the agent.
-        # TODO improve implementation. not efficient.
+        Gets the net state. Extracts from it just the state fluents relevant for the agent.
         """
-        to_agent_regex = f"^q___l-.\d+-.\d+__l-.\d+-{self.name}"
-        signal_obs = 'signal'
-
-        neighbors_state = {}
-        for neighbor in self.neighbors:
-            original_neighbor_state = SmartAgent.filter_agent_obs_from_net_state(neighbor, net_state)
-            new_neighbor_state = original_neighbor_state.copy()
-            for k in original_neighbor_state.keys():
-                if not re.search(to_agent_regex, k) and signal_obs not in k:
-                    del new_neighbor_state[k]
-            neighbors_state.update(new_neighbor_state)
-
-        return neighbors_state
-
-    def filter_agent_and_neighbor_obs_from_net_state(self, net_state) -> dict:
-        """
-        Gets the smart_net state, and returns the obs space for the agent.
-        The obs space of the agent also includes the neighbor's hand-picked observations.
-        """
-        agent_state = SmartAgent.filter_agent_obs_from_net_state(self.name, net_state)
-        if hpam.SHARE_STATE:
-            neighbors_state = self.filter_neighbors_obs_from_net_state(net_state)
-            agent_state.update(neighbors_state)
+        agent_state = {}
+        for k in self.observation_space.keys():
+            agent_state[k] = net_state[k]
+            
         return agent_state
 
     @staticmethod
-    def filter_agent_obs_from_net_state(agent_name: str, net_state) -> dict:
+    def filter_agent_obs_space_from_net_obs_space(agent_name, net_obs_space) -> dict:
         """
         Returns only the 'signal', 'signal_t' and 'q' fluents relevant to the specific agent.
         The q fluents relevant are queues incoming to intersection, and going from it.
@@ -81,7 +60,7 @@ class SmartAgent(BaseAgent):
         q_regex = f"^q___l-.\d+-{agent_name}__l-{agent_name}-.\d+"
         
         observations = {}
-        for k,v in net_state.items():
+        for k,v in net_obs_space.items():
             if signal_obs in k and agent_name in k:    # If signal / signal_t AND relevant for agent.
                 observations[k] = v
             elif re.search(q_regex, k):       # If queue
@@ -90,18 +69,35 @@ class SmartAgent(BaseAgent):
                     observations[k] = v
 
         return observations
-        
-    # def calculate_agent_reward_from_state(self, state: dict) -> float:
-    #     """
-    #     Gets the net state, and calculates the reward for a specific agent.
-    #     The reward is the sum of the Nc in the 4 lanes coming in towards an intersection.
-    #     """
-    #     reward = 0
-    #     cars_number_regex = f"Nc___l-.\d+-{self.name}"
-    #     for k,v in state.items():
-    #         if re.search(cars_number_regex, k):
-    #             reward -= v
-    #     return reward
+    
+    def filter_neighbors_obs_space_from_net_obs_space(self, net_obs_space: Dict) -> dict:
+        """
+        Gets the smart_net observation space, and returns the observation space of the neighbors of the agent.
+        """
+        to_agent_regex = f"^q___l-.\d+-.\d+__l-.\d+-{self.name}"
+        signal_obs = 'signal'
+
+        neighbors_obs_space = {}
+        for neighbor in self.neighbors:
+            original_neighbor_obs_space = SmartAgent.filter_agent_obs_space_from_net_obs_space(neighbor, net_obs_space)
+            new_neighbor_obs_space = original_neighbor_obs_space.copy()
+            for k in original_neighbor_obs_space.keys():
+                if not re.search(to_agent_regex, k) and signal_obs not in k:
+                    del new_neighbor_obs_space[k]
+            neighbors_obs_space.update(new_neighbor_obs_space)
+
+        return neighbors_obs_space
+    
+    def filter_agent_and_neighbors_obs_space_from_net_obs_space(self, net_obs_space: Dict) -> dict:
+        """
+        Gets the smart_net observation space, and returns the observation space of the agent.
+        The observation space of the agent also includes the neighbor's hand-picked observations.
+        """
+        agent_obs_space = SmartAgent.filter_agent_obs_space_from_net_obs_space(self.name, net_obs_space)
+        if hpam.SHARE_STATE:
+            neighbors_obs_space = self.filter_neighbors_obs_space_from_net_obs_space(net_obs_space)
+            agent_obs_space.update(neighbors_obs_space)
+        return agent_obs_space
     
     def calculate_self_reward_from_Nc(self, cars_on_links: pd.DataFrame) -> float:
         """
@@ -236,7 +232,7 @@ class SmartAgent(BaseAgent):
         
     def get_neighbors(self, state: Dict) -> list:
         """
-        Extract the intercsetion's neighbours from the state.
+        Extract the intersection's neighbors from the state.
         """
         neighbors = []
         neighbors_regex = f"Nc___l-i\d+-{self.name}"

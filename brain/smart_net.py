@@ -6,25 +6,26 @@ from brain.agent import SmartAgent
 import brain.hyper_params as hpam
 
 class SmartNet(BaseAgent):
+    # TODO Did we deal with the 1x1 no neighbors grid option?
     def __init__(self, nodes_num: int, net_obs_space: Dict, net_action_space: Dict, neighbors_weight: float) -> None:
         self.size = nodes_num
-        agents = []
+        agents = {}
         for i in range(nodes_num):
-            agent = SmartAgent(f"i{i}", net_action_space, net_obs_space, neighbors_weight)
-            agents.append(agent)
+            agent_name = f"i{i}"
+            agent = SmartAgent(agent_name, net_action_space, net_obs_space, neighbors_weight)
+            agents[agent_name] = agent
         self.agents = agents
         
     def sample_action(self, state: dict) -> dict:
         """
         Get the actions for each node (agent).
         Return a dictionary with all the chosen actions.
-        TODO possible make it more efficient
         """
         actions = {}
-        for agent in self.agents:
-            agent_obs = agent.filter_agent_and_neighbor_obs_from_net_state(state)
-            actions.update(agent.sample_action(agent_obs))
-            # actions |= agent.sample_action(agent_obs)
+        for agent in self.agents.values():
+            agent_state = agent.filter_agent_state_from_net_state(state)
+            actions.update(agent.sample_action(agent_state))
+            # actions |= agent.sample_action(agent_state)
         
         return actions
     
@@ -35,7 +36,7 @@ class SmartNet(BaseAgent):
         Returns the training losses of the policy nets for all the agents.
         """
         losses = {}
-        for agent in self.agents:
+        for agent in self.agents.values():
             # Train the policy net
             losses[agent.name] = agent.train_policy_net()
             
@@ -48,12 +49,12 @@ class SmartNet(BaseAgent):
         return pd.Series(losses)
                 
     def remember(self, net_state: dict, net_action: dict, net_next_state: dict, rewards: pd.Series) -> None:
-        for agent in self.agents:
-            agent_obs = agent.filter_agent_and_neighbor_obs_from_net_state(net_state)
-            agent_action = SmartAgent.filter_agent_dict_from_net_dict(agent.name, net_action)
-            agent_next_obs = agent.filter_agent_and_neighbor_obs_from_net_state(net_next_state)
+        for agent in self.agents.values():
+            agent_state = agent.filter_agent_state_from_net_state(net_state)
+            agent_action = agent.filter_agent_dict_from_net_dict(net_action)
+            agent_next_state = agent.filter_agent_state_from_net_state(net_next_state)
             agent_reward = rewards.loc[agent.name]
-            agent.memory.push(agent_obs, agent_action, agent_next_obs, agent_reward)
+            agent.memory.push(agent_state, agent_action, agent_next_state, agent_reward)
             
     @staticmethod
     def get_cars_on_links(state: dict) -> pd.DataFrame:
@@ -99,7 +100,7 @@ class SmartNet(BaseAgent):
         # Calculate agents' self rewards
         self_rewards_Nc = {}
         self_rewards_q = {}
-        for agent in self.agents:
+        for agent in self.agents.values():
             self_rewards_Nc[agent.name] = agent.calculate_self_reward_from_Nc(cars_on_links)
             self_rewards_q[agent.name] = agent.calculate_self_reward_from_q(cars_on_queues)
         self_rewards_Nc = pd.Series(self_rewards_Nc, name='self_Nc')/hpam.REWARD_DOWNSCALE
@@ -110,7 +111,7 @@ class SmartNet(BaseAgent):
             weighted_rewards = self_rewards_q.copy().rename('weighted')
         else:
             weighted_rewards = self_rewards_Nc.copy().rename('weighted')
-        for agent in self.agents:
+        for agent in self.agents.values():
             neighbors_reward = agent.calculate_neighbors_reward(cars_on_queues)
             weighted_rewards.loc[agent.name] += agent.neighbors_weight * neighbors_reward
         rewards = pd.concat([self_rewards_Nc, self_rewards_q, weighted_rewards], axis=1)

@@ -16,7 +16,7 @@ class SmartWriter(SummaryWriter):
         """
         Writes to TensorBoard the model's weights histogram
         """
-        for agent in smart_net.agents:
+        for agent in smart_net.agents.values():
             models = {'policy': agent.policy_net, 'target': agent.target_net}
             for model_name, model in models.items():
                 
@@ -29,16 +29,16 @@ class SmartWriter(SummaryWriter):
         """
         Writes the nets structure to TensorBoard
         """
-        for agent in smart_net.agents:
-            agent_obs = agent.filter_agent_and_neighbor_obs_from_net_state(state)
-            agent_obs_tensor = agent.dict_vals_to_tensor(agent_obs)
-            self.add_graph(agent.policy_net, agent_obs_tensor)
-            self.add_graph(agent.target_net, agent_obs_tensor)
+        for agent in smart_net.agents.values():
+            agent_state = agent.filter_agent_state_from_net_state(state)
+            agent_state_tensor = agent.dict_vals_to_tensor(agent_state)
+            self.add_graph(agent.policy_net, agent_state_tensor)
+            self.add_graph(agent.target_net, agent_state_tensor)
             
     def rewards_or_losses(self, smart_net: SmartNet, title: str, rewards_or_losses: pd.Series, episode: int):
         """
         Writes the total and individual rewards / losses to TensorBoard
         """
         self.add_scalar(f"Total{title}", rewards_or_losses.sum(), episode)
-        for agent in smart_net.agents:
+        for agent in smart_net.agents.values():
             self.add_scalar(f"{agent.name}/{title}", rewards_or_losses.loc[agent.name], episode)
