@@ -1,6 +1,6 @@
 # LEARN = True                            # Learn or Analyze   # TODO After training the smart_net, analyze mode produces the same reward every episode, as training is disabled. Maybe i misunderstood the explore=0 instruction.
 
-GRID_SIZE = '1x1'                       # The grid topology: rows x columns
+GRID_SIZE = '1x3'                       # The grid topology: rows x columns
 EPISODES_NUM = 10000                     # Number of episodes in the simulation
 UPDATES = 100                           # Number of updates taken every episode
 
