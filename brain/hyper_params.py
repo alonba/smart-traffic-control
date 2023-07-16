@@ -1,5 +1,3 @@
-# LEARN = True                            # Learn or Analyze   # TODO After training the smart_net, analyze mode produces the same reward every episode, as training is disabled. Maybe i misunderstood the explore=0 instruction.
-
 GRID_SIZE = '1x3'                       # The grid topology: rows x columns
 EPISODES_NUM = 10000                    # Number of episodes in the simulation
 UPDATES = 100                           # Number of updates taken every episode
@@ -8,7 +6,6 @@ MEMORY_SIZE = 10 ** 5                   # The size (number of transitions) of th
 BATCH_SIZE = 64                         # The number of transitions sampled from the replay buffer
 
 GAMMA = 0.95                            # The discount factor as mentioned in the previous section
-# EXPLORE_CHANCE = 0.1 if LEARN else 0    # Exploration probability
 EXPLORE_CHANCE = 0.1                    # Exploration probability
 
 LR = 1e-4                               # The learning rate of the optimizer
