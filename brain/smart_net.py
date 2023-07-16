@@ -8,25 +8,40 @@ import brain.hyper_params as hpam
 class SmartNet(BaseAgent):
     def __init__(self, nodes_num: int, net_obs_space: Dict, net_action_space: Dict, neighbors_weight: float) -> None:
         self.size = nodes_num
+        self.leadership = self.get_leadership()
         agents = {}
         for i in range(nodes_num):
             agent_name = f"i{i}"
-            agent = SmartAgent(agent_name, net_action_space, net_obs_space, neighbors_weight)
+            agent = SmartAgent(agent_name, net_action_space, net_obs_space, neighbors_weight, self.leadership)
             agents[agent_name] = agent
         self.agents = agents
         
-    def sample_action(self, state: dict) -> dict:
+    def sample_action(self, state: dict):
         """
         Get the actions for each node (agent).
         Return a dictionary with all the chosen actions.
         """
         actions = {}
-        for agent in self.agents.values():
-            agent_state = agent.filter_agent_state_from_net_state(state)
-            actions.update(agent.sample_action(agent_state))
-            # actions |= agent.sample_action(agent_state)
+        nets_outputs = {}
+
+        # Get the leader's policy nets outputs and actions
+        for agent_name, is_leader in self.leadership.items():
+            if is_leader:
+                agent_state = self.agents[agent_name].filter_agent_state_from_net_state(state)
+                net_output, action = self.agents[agent_name].sample_action(agent_state)
+                actions.update(action)
+                nets_outputs.update(net_output)
         
-        return actions
+        # Use the leader's net_outputs to get the follower's chosen actions.
+        state_with_net_outputs = state.copy()
+        state_with_net_outputs.update(nets_outputs)
+        for agent_name, is_leader in self.leadership.items():
+            if not is_leader:
+                agent_state = self.agents[agent_name].filter_agent_state_from_net_state(state_with_net_outputs)
+                _, action = self.agents[agent_name].sample_action(agent_state)
+                actions.update(action)
+                
+        return state_with_net_outputs, actions
     
     def train(self, episode: int, hard_upd_n: int) -> pd.Series:
         """
@@ -47,13 +62,15 @@ class SmartNet(BaseAgent):
         
         return pd.Series(losses)
                 
-    def remember(self, net_state: dict, net_action: dict, net_next_state: dict, rewards: pd.Series) -> None:
+    def remember(self, net_state: dict, net_action: dict, rewards: pd.Series, is_last_step: bool) -> None:
+        """
+        Add the transition to the replay buffer.
+        """
         for agent in self.agents.values():
             agent_state = agent.filter_agent_state_from_net_state(net_state)
-            agent_action = agent.filter_agent_dict_from_net_dict(net_action)
-            agent_next_state = agent.filter_agent_state_from_net_state(net_next_state)
+            agent_action = SmartAgent.filter_agent_dict_from_net_dict(agent.name, net_action)
             agent_reward = rewards.loc[agent.name]
-            agent.memory.push(agent_state, agent_action, agent_next_state, agent_reward)
+            agent.memory.push(agent_state, agent_action, agent_reward, is_last_step)
             
     @staticmethod
     def get_cars_on_links(state: dict) -> pd.DataFrame:
@@ -115,3 +132,14 @@ class SmartNet(BaseAgent):
             weighted_rewards.loc[agent.name] += agent.neighbors_weight * neighbors_reward
         rewards = pd.concat([self_rewards_Nc, self_rewards_q, weighted_rewards], axis=1)
         return rewards
+    
+    def get_leadership(self) -> dict:
+        """
+        Returns a dictionary holding the role (leader / follower) of each agent in the smart net.
+        TODO make it a pandas df instead of dict
+        """
+        leadership = {}
+        for i in range(self.size):
+            leadership[f'i{i}'] = False if i%2 == 0 else True
+            
+        return leadership

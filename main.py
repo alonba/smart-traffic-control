@@ -69,7 +69,7 @@ if __name__=="__main__":
             # env.render()
             
             # Select action
-            action = smart_net.sample_action(state)
+            state_with_net_outputs, action = smart_net.sample_action(state)
             
             # Make a step
             aux.print_progress(step, 100, 'Step')
@@ -83,7 +83,8 @@ if __name__=="__main__":
             
             # Store the transition in memory
             # if hpam.LEARN:
-            smart_net.remember(state, action, next_state, rewards['weighted'])
+            is_last_step = True if step == (env.horizon - 1) else False
+            smart_net.remember(state_with_net_outputs, action, rewards['weighted'], is_last_step)
             
             # Progress to the next step
             state = next_state
@@ -114,6 +115,6 @@ if __name__=="__main__":
     
     # Save graphs of models to TensorBoard
     # if hpam.LEARN:
-    writer.graphs(smart_net, state)
+    writer.graphs(smart_net, state_with_net_outputs)
     
     end_of_file = True
