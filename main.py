@@ -42,7 +42,8 @@ run_name = f'\
 Reward-{hpam.REWARD_TYPE}_\
 Explore{hpam.EXPLORE_CHANCE}_\
 Beta{args.neighbors_weight}_\
-StateShare-{hpam.SHARE_STATE}\
+StateShare-{hpam.SHARE_STATE}_\
+Stackelberg-{hpam.STACKELBERG}\
 '
 writer = SmartWriter(run_name)
 
