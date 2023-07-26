@@ -2,11 +2,13 @@ import pickle
 import datetime
 import pandas as pd
 import matplotlib.pyplot as plt
+import brain.hyper_params as hpam
 
 def print_progress(step: int, skip: int, name: str) -> None:
-    real_step = step + 1
-    if real_step % skip == 0:
-        print(f'{name} = {real_step}')
+    if hpam.VERBOSE:
+        real_step = step + 1
+        if real_step % skip == 0:
+            print(f'{name} = {real_step}')
 
 def strfdelta(tdelta: datetime.timedelta, fmt: str) -> str:
     d = {"days": tdelta.days}

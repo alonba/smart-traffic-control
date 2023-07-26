@@ -1,3 +1,5 @@
+VERBOSE = False
+
 GRID_SIZE = '1x3'                       # The grid topology: rows x columns
 EPISODES_NUM = 10000                    # Number of episodes in the simulation
 UPDATES = 100                           # Number of updates taken every episode
