@@ -21,9 +21,10 @@ class SmartAgent(BaseAgent):
         self.action_space = Dict(SmartAgent.filter_agent_dict_from_net_dict(self.name, net_action_space))
         self.neighbors = self.get_neighbors(net_state, leadership)
         self.neighbors_weight = (neighbors_weight / len(self.neighbors)) if (len(self.neighbors) > 0) else 0
-        self.observation_space = Dict(self.filter_agent_and_neighbors_obs_space_from_net_obs_space(net_state, net_action_space))
+        self.raw_observation_space = self.filter_agent_and_neighbors_obs_space_from_net_obs_space(net_state, net_action_space)
+        self.processed_observation_space = Dict(self.process_obs_space())
 
-        n_observations = len(self.observation_space.spaces)
+        n_observations = len(self.processed_observation_space.spaces)
         n_actions = len(self.action_space)
         
         # Init networks
@@ -43,13 +44,18 @@ class SmartAgent(BaseAgent):
             if agent_name in k:
                 agent_dict[k] = v
         return agent_dict
-    
-    def filter_agent_state_from_net_state(self, net_state) -> dict:
+
+    def filter_and_process_agent_state(self, net_state: dict):
+        agent_state = self.filter_agent_state_from_net_state(net_state)
+        processed_agent_state = self.process_state(agent_state)
+        return processed_agent_state
+
+    def filter_agent_state_from_net_state(self, net_state: dict) -> dict:
         """
         Gets the net state. Extracts from it just the state fluents relevant for the agent.
         """
         agent_state = {}
-        for k in self.observation_space.keys():
+        for k in self.raw_observation_space.keys():
             agent_state[k] = net_state[k]
             
         return agent_state
@@ -79,6 +85,7 @@ class SmartAgent(BaseAgent):
         Gets the smart_net observation space, and returns the observation space of the neighbors of the agent.
         """
         to_agent_regex = f"^q___l-.\d+-.\d+__l-.\d+-{self.name}"
+        # TODO create a global string for signals
         signal_obs = 'signal'
 
         neighbors_obs_space = {}
@@ -167,8 +174,8 @@ class SmartAgent(BaseAgent):
             
             # TODO move to independent function
             net_output_dict = {}
-            for i in range(net_output.size()[0]):
-                net_output_dict[f'{self.name}_net_output_{i}'] = net_output[i].item()
+
+            net_output_dict[f'{self.name}_net_output_diff'] = net_output[0].item() - net_output[1].item()
             
             chosen_action_index = net_output.argmax().item()
             
@@ -264,7 +271,7 @@ class SmartAgent(BaseAgent):
                 neighbors[neighbor_name] = leadership[neighbor_name]
         return neighbors
 
-    def get_neighboring_leaders_net_outputs_obs_space(self, net_action_space: Dict):
+    def get_neighboring_leaders_net_outputs_obs_space(self, net_action_space: Dict) -> dict:
         """
         Checks if the neighbors are leaders. If so, return their net outputs as a part of the observation space.
         """
@@ -274,10 +281,55 @@ class SmartAgent(BaseAgent):
                 if is_neighbor_a_leader:
                     neighbor_action_space = SmartAgent.filter_agent_dict_from_net_dict(neighbor_name, net_action_space)
                     for action in neighbor_action_space.keys():
-                        neighbor_net_output = {
-                            (neighbor_name + '_net_output_0'): Box(-np.inf,np.inf),
-                            (neighbor_name + '_net_output_1'): Box(-np.inf,np.inf)
-                            }
+                        neighbor_net_output = {(neighbor_name + '_net_output_diff'): Box(-np.inf, np.inf)}
                     net_output_obs_space.update(neighbor_net_output)
                     
         return net_output_obs_space
+
+    def process_obs_space(self) -> dict:
+        """
+        Process the raw observation space to create better features for the NN
+        Returns the processed observation space
+        """
+
+        new_obs_space = self.raw_observation_space.copy()
+
+        # Create cyclic features to replace the legacy signal feature
+        for space in self.raw_observation_space.keys():
+            cyclic_dict = {}
+            if 'signal__' in space:
+                # TODO make it prettier and more robust
+                agent_of_signal = space[-2:]
+                cyclic_dict[f'signal_sin_{agent_of_signal}'] = Box(-1, 1)
+                cyclic_dict[f'signal_cos_{agent_of_signal}'] = Box(-1, 1)
+                del new_obs_space[space]
+            new_obs_space.update(cyclic_dict)
+
+        return new_obs_space
+
+    def process_state(self, agent_state: dict) -> dict:
+        """
+        Process the raw state to create better features for the NN
+        Returns the processed state
+        """
+        # TODO why are the signals objects instead of ints in the processed obs space?
+
+        new_state = agent_state.copy()
+        for k in self.raw_observation_space.keys():
+            cyclic_dict = {}
+            if 'signal__' in k:
+                agent_of_signal = k[-2:]
+                number_of_phases = self.raw_observation_space[k].n
+                cyclic_dict[f'signal_sin_{agent_of_signal}'] = np.sin(agent_state[k] * 2 * np.pi / number_of_phases)
+                cyclic_dict[f'signal_cos_{agent_of_signal}'] = np.cos(agent_state[k] * 2 * np.pi / number_of_phases)
+                del new_state[k]
+            new_state.update(cyclic_dict)
+
+        return new_state
+
+    # @staticmethod
+    # def discrete_cyclic_to_sin_and_cos():
+    #     """
+    #
+    #
+    #     """

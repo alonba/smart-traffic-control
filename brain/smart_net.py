@@ -27,7 +27,7 @@ class SmartNet(BaseAgent):
         # Get the leader's policy nets outputs and actions
         for agent_name, is_leader in self.leadership.items():
             if is_leader:
-                agent_state = self.agents[agent_name].filter_agent_state_from_net_state(state)
+                agent_state = self.agents[agent_name].filter_and_process_agent_state(state)
                 net_output, action = self.agents[agent_name].sample_action(agent_state)
                 actions.update(action)
                 nets_outputs.update(net_output)
