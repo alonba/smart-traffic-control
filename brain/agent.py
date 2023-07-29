@@ -23,9 +23,9 @@ class SmartAgent(BaseAgent):
         self.neighbors = self.get_neighbors(net_state, leadership)
         self.neighbors_weight = (neighbors_weight / len(self.neighbors)) if (len(self.neighbors) > 0) else 0
         self.raw_obs_space = self.filter_agent_and_neighbors_obs_space_from_net_obs_space(net_state, net_action_space)
-        self.processed_obs_space = Dict(self.process_obs_space())
+        self.processed_obs_space = self.process_obs_space()
 
-        n_obs = len(self.processed_obs_space.spaces)
+        n_obs = len(self.processed_obs_space)
         n_actions = len(self.action_space)
         
         # Init networks
@@ -296,7 +296,9 @@ class SmartAgent(BaseAgent):
         One option is to create a tuple that holds (keys_to_delete, new_keys, key_to_use_for_processing(is it the same ones as keys_to_delete?), process_function that takes the arguments from the keys_to_use and outputs the processed data)
         Such that when the state process step comes, we just need to systematically iterate over all this tuples, and send the required data to the relevant funcs, and receive a new, processed, state.
         """
+        # TODO
         new_obs_space = self.discrete_cyclic_to_sin_and_cos(self.raw_obs_space, is_obs_space=True)
+        new_obs_space = self.sum_neighbor_donations(new_obs_space, is_obs_space=True)
         return new_obs_space
 
     def process_state(self, agent_state: dict) -> dict:
@@ -305,9 +307,10 @@ class SmartAgent(BaseAgent):
         Returns the processed state
         """
         new_state = self.discrete_cyclic_to_sin_and_cos(agent_state, is_obs_space=False)
+        new_state = self.sum_neighbor_donations(new_state, is_obs_space=False)
         return new_state
     
-    def discrete_cyclic_to_sin_and_cos(self, raw_state: dict, is_obs_space: bool):
+    def discrete_cyclic_to_sin_and_cos(self, raw_state: dict, is_obs_space: bool) -> dict:
         """
         This function takes a raw state / raw obs_space
         Returns the cyclic transformation of the signal phase as a part of a new state/obs_space.
@@ -327,5 +330,29 @@ class SmartAgent(BaseAgent):
                     cyclic_dict[cos_name] = np.cos(raw_state[k] * 2 * np.pi / number_of_phases)
                 del new_state[k]
             new_state.update(cyclic_dict)
+            
+        return new_state
+    
+    def sum_neighbor_donations(self, raw_state: dict, is_obs_space: bool) -> dict:
+        """
+        Takes a raw state/obs_space and returns the summed neighbor donations
+        """
+        neighbors_sum = {}
+        for neighbor in self.neighbors.keys():
+            if is_obs_space:
+                neighbors_sum[f'sum_{neighbor}'] = Box(0, np.inf)
+            else:
+                neighbors_sum[f'sum_{neighbor}'] = 0
+        
+        new_state = raw_state.copy()
+        for k in raw_state.keys():
+            if 'q__' in k:
+                broken_q = k.split('-')
+                pivot = broken_q[3]
+                if pivot != self.name:
+                    if not is_obs_space:
+                        neighbors_sum[f'sum_{pivot}'] += raw_state[k]
+                    del new_state[k]
+        new_state.update(neighbors_sum)
             
         return new_state
