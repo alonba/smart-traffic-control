@@ -15,10 +15,11 @@ class SmartAgent(BaseAgent):
     A smart agent is a single traffic light.
     # TODO make the agent inherit the smart_net object (or at least just receive the smart_net as attribute)
     """
-    def __init__(self, name: str, net_action_space: Dict, net_state: Dict, neighbors_weight: float, leadership: dict, phases: dict) -> None:
+    def __init__(self, name: str, net_action_space: Dict, net_state: Dict, neighbors_weight: float, leadership: dict, phases: dict, turns_on_red: pd.DataFrame) -> None:
         self.name = name
         self.is_leader = leadership[self.name]
         self.net_phases = phases
+        self.turns_on_red = turns_on_red
         self.action_space = Dict(SmartAgent.filter_agent_dict_from_net_dict(self.name, net_action_space))
         self.neighbors = self.get_neighbors(net_state, leadership)
         self.neighbors_weight = (neighbors_weight / len(self.neighbors)) if (len(self.neighbors) > 0) else 0
@@ -62,7 +63,7 @@ class SmartAgent(BaseAgent):
         return agent_state
 
     @staticmethod
-    def filter_agent_obs_space_from_net_obs_space(agent_name, net_obs_space) -> dict:
+    def filter_agent_obs_space_from_net_obs_space(agent_name, net_obs_space, turns_on_red) -> dict:
         """
         Returns only the 'signal', 'signal_t' and 'q' fluents relevant to the specific agent.
         The q fluents relevant are queues incoming to intersection, and going from it.
@@ -70,13 +71,16 @@ class SmartAgent(BaseAgent):
         signal_obs = 'signal'
         q_regex = f"^q___l-.\d+-{agent_name}__l-{agent_name}-.\d+"
         
+        agent_turns_on_red = turns_on_red[turns_on_red['pivot'] == agent_name]
+        
         observations = {}
         for k,v in net_obs_space.items():
             if signal_obs in k and agent_name in k:    # If signal / signal_t AND relevant for agent.
                 observations[k] = v
             elif re.search(q_regex, k):       # If queue
                 prefix, from_1, to_1, from_2, to_2 = k.split('-')
-                if from_1 != to_2:
+                is_turn_on_red = ((agent_turns_on_red['from'] == from_1) * (agent_turns_on_red['to'] == to_2)).any()
+                if (from_1 != to_2) and not is_turn_on_red:
                     observations[k] = v
 
         return observations
@@ -91,7 +95,7 @@ class SmartAgent(BaseAgent):
 
         neighbors_obs_space = {}
         for neighbor in self.neighbors:
-            original_neighbor_obs_space = SmartAgent.filter_agent_obs_space_from_net_obs_space(neighbor, net_obs_space)
+            original_neighbor_obs_space = SmartAgent.filter_agent_obs_space_from_net_obs_space(neighbor, net_obs_space, self.turns_on_red)
             new_neighbor_obs_space = original_neighbor_obs_space.copy()
             for k in original_neighbor_obs_space.keys():
                 if not re.search(to_agent_regex, k) and signal_obs not in k:
@@ -105,7 +109,7 @@ class SmartAgent(BaseAgent):
         Gets the smart_net observation space, and returns the observation space of the agent.
         The observation space of the agent also includes the neighbor's hand-picked observations.
         """
-        agent_obs_space = SmartAgent.filter_agent_obs_space_from_net_obs_space(self.name, net_obs_space)
+        agent_obs_space = SmartAgent.filter_agent_obs_space_from_net_obs_space(self.name, net_obs_space, self.turns_on_red)
         if hpam.SHARE_STATE:
             neighbors_obs_space = self.filter_neighbors_obs_space_from_net_obs_space(net_obs_space)
             agent_obs_space.update(neighbors_obs_space)
@@ -356,3 +360,8 @@ class SmartAgent(BaseAgent):
         new_state.update(neighbors_sum)
             
         return new_state
+    
+    def remove_turns_on_red(self, ):
+        """
+        Remove the turns on red from the observation space.
+        """

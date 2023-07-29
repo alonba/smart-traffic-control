@@ -7,6 +7,7 @@ import brain.auxiliary as aux
 from brain.smart_net import SmartNet
 from brain.smart_writer import SmartWriter
 import brain.hyper_params as hpam
+import brain.env_process as env_process
 
 start_time = datetime.datetime.now()
 
@@ -23,12 +24,16 @@ instance = f"problem/{hpam.GRID_SIZE}.rddl"
 env = RDDLEnv.RDDLEnv(domain=domain, instance=instance)
 num_of_nodes_in_grid = len(env.model.objects['intersection'])
 
+# Extract data from env
+turns_on_red = env_process.get_turns_on_red(env)
+
 # Init agents (a net holds agents, one for each node)
 smart_net = SmartNet(
     nodes_num=num_of_nodes_in_grid, 
     net_obs_space=env.observation_space, 
     net_action_space=env.action_space, 
-    neighbors_weight=args.neighbors_weight
+    neighbors_weight=args.neighbors_weight,
+    turns_on_red = turns_on_red
     )
 
 # Set visualizer

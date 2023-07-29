@@ -6,15 +6,16 @@ from brain.agent import SmartAgent
 import brain.hyper_params as hpam
 
 class SmartNet(BaseAgent):
-    def __init__(self, nodes_num: int, net_obs_space: Dict, net_action_space: Dict, neighbors_weight: float) -> None:
+    def __init__(self, nodes_num: int, net_obs_space: Dict, net_action_space: Dict, neighbors_weight: float, turns_on_red: pd.DataFrame) -> None:
         self.size = nodes_num
         self.leadership = self.get_leadership()
         self.obs_space = net_obs_space
         self.phases = self.get_phases()
+        self.turns_on_red = turns_on_red
         agents = {}
         for i in range(nodes_num):
             agent_name = f"i{i}"
-            agent = SmartAgent(agent_name, net_action_space, net_obs_space, neighbors_weight, self.leadership, self.phases)
+            agent = SmartAgent(agent_name, net_action_space, net_obs_space, neighbors_weight, self.leadership, self.phases, turns_on_red)
             agents[agent_name] = agent
         self.agents = agents
         
