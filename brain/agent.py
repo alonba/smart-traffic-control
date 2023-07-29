@@ -291,16 +291,11 @@ class SmartAgent(BaseAgent):
         """
         Process the raw observation space to create better features for the NN
         Returns the processed observation space
+        
+        TODO create a robust mechanism for pre-processing the observation space and state.
+        One option is to create a tuple that holds (keys_to_delete, new_keys, key_to_use_for_processing(is it the same ones as keys_to_delete?), process_function that takes the arguments from the keys_to_use and outputs the processed data)
+        Such that when the state process step comes, we just need to systematically iterate over all this tuples, and send the required data to the relevant funcs, and receive a new, processed, state.
         """
-        # Need to create a tuple that holds:
-        # 0. the names of the keys to delete
-        # 1. the names of the new processed keys
-        # 2. the names of the required spaces for the calculation
-        # 3. a pointer to a func that will calculate the value when needed.
-        # 
-        # take all the new names and names_to_delete and create (and return) the new processed_obs_space
-        # _, _, _, _, = self.prepare_cyclic_signal_obs_space()
-        # new_obs_space, 
         new_obs_space = self.discrete_cyclic_to_sin_and_cos(self.raw_obs_space, is_obs_space=True)
         return new_obs_space
 
@@ -309,42 +304,13 @@ class SmartAgent(BaseAgent):
         Process the raw state to create better features for the NN
         Returns the processed state
         """
-        
         new_state = self.discrete_cyclic_to_sin_and_cos(agent_state, is_obs_space=False)
         return new_state
-
-    # def prepare_cyclic_signal_obs_space(self):
-    #     keys_to_delete = []
-    #     for k in self.raw_observation_space.keys():
-    #         if 'signal__' in k:
-    #             keys_to_delete.append(k)
-        
-    #     new_keys_recipes = []
-    #     for k in keys_to_delete:
-    #         agent_of_signal = k[-2:]
-    #         sin_recipe = {
-    #             'new_key_name': f'sin_signal_{agent_of_signal}',
-    #             'ingredients': [k],
-    #             'pot': self.sin_part_of_cyclic
-    #         }
-    #         cos_recipe = {
-    #             'new_key_name': f'cos_signal_{agent_of_signal}',
-    #             'ingredients': {'phase': },
-    #             'pot': self.cos_part_of_cyclic
-    #         }
-            
-    #         new_keys_recipes.append(sin_recipe)
-    #         new_keys_recipes.append(cos_recipe)
-    
-    # def sin_part_of_cyclic(self, *args):
-    #     phase = args[0]
-    #     np.sin(args[0] * 2 * np.pi / self.)
     
     def discrete_cyclic_to_sin_and_cos(self, raw_state: dict, is_obs_space: bool):
         """
-        This function takes a raw state / obs_space and returns 
-        This function has two modes - modify the observation space, or modify the state.
-        Raw state could also refer to the raw observation space.
+        This function takes a raw state / raw obs_space
+        Returns the cyclic transformation of the signal phase as a part of a new state/obs_space.
         """
         new_state = raw_state.copy()
         for k in raw_state.keys():
