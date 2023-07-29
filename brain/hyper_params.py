@@ -1,4 +1,4 @@
-VERBOSE = False
+VERBOSE = True
 
 GRID_SIZE = '1x3'                       # The grid topology: rows x columns
 EPISODES_NUM = 10000                    # Number of episodes in the simulation

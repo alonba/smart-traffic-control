@@ -13,24 +13,25 @@ import brain.hyper_params as hpam
 class SmartAgent(BaseAgent):
     """
     A smart agent is a single traffic light.
-    # TODO make the agent inherit the smart_net object.
+    # TODO make the agent inherit the smart_net object (or at least just receive the smart_net as attribute)
     """
-    def __init__(self, name: str, net_action_space: Dict, net_state: Dict, neighbors_weight: float, leadership: dict) -> None:
+    def __init__(self, name: str, net_action_space: Dict, net_state: Dict, neighbors_weight: float, leadership: dict, phases: dict) -> None:
         self.name = name
         self.is_leader = leadership[self.name]
+        self.net_phases = phases
         self.action_space = Dict(SmartAgent.filter_agent_dict_from_net_dict(self.name, net_action_space))
         self.neighbors = self.get_neighbors(net_state, leadership)
         self.neighbors_weight = (neighbors_weight / len(self.neighbors)) if (len(self.neighbors) > 0) else 0
-        self.raw_observation_space = self.filter_agent_and_neighbors_obs_space_from_net_obs_space(net_state, net_action_space)
-        self.processed_observation_space = Dict(self.process_obs_space())
+        self.raw_obs_space = self.filter_agent_and_neighbors_obs_space_from_net_obs_space(net_state, net_action_space)
+        self.processed_obs_space = Dict(self.process_obs_space())
 
-        n_observations = len(self.processed_observation_space.spaces)
+        n_obs = len(self.processed_obs_space.spaces)
         n_actions = len(self.action_space)
         
         # Init networks
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.policy_net = DQN(n_observations, n_actions).to(self.device)
-        self.target_net = DQN(n_observations, n_actions).to(self.device)
+        self.policy_net = DQN(n_obs, n_actions).to(self.device)
+        self.target_net = DQN(n_obs, n_actions).to(self.device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
 
         self.optimizer = torch.optim.RMSprop(self.policy_net.parameters(), lr=hpam.LR)
@@ -55,7 +56,7 @@ class SmartAgent(BaseAgent):
         Gets the net state. Extracts from it just the state fluents relevant for the agent.
         """
         agent_state = {}
-        for k in self.raw_observation_space.keys():
+        for k in self.raw_obs_space.keys():
             agent_state[k] = net_state[k]
             
         return agent_state
@@ -291,20 +292,16 @@ class SmartAgent(BaseAgent):
         Process the raw observation space to create better features for the NN
         Returns the processed observation space
         """
-
-        new_obs_space = self.raw_observation_space.copy()
-
-        # Create cyclic features to replace the legacy signal feature
-        for space in self.raw_observation_space.keys():
-            cyclic_dict = {}
-            if 'signal__' in space:
-                # TODO make it prettier and more robust
-                agent_of_signal = space[-2:]
-                cyclic_dict[f'signal_sin_{agent_of_signal}'] = Box(-1, 1)
-                cyclic_dict[f'signal_cos_{agent_of_signal}'] = Box(-1, 1)
-                del new_obs_space[space]
-            new_obs_space.update(cyclic_dict)
-
+        # Need to create a tuple that holds:
+        # 0. the names of the keys to delete
+        # 1. the names of the new processed keys
+        # 2. the names of the required spaces for the calculation
+        # 3. a pointer to a func that will calculate the value when needed.
+        # 
+        # take all the new names and names_to_delete and create (and return) the new processed_obs_space
+        # _, _, _, _, = self.prepare_cyclic_signal_obs_space()
+        # new_obs_space, 
+        new_obs_space = self.discrete_cyclic_to_sin_and_cos(self.raw_obs_space, is_obs_space=True)
         return new_obs_space
 
     def process_state(self, agent_state: dict) -> dict:
@@ -312,24 +309,57 @@ class SmartAgent(BaseAgent):
         Process the raw state to create better features for the NN
         Returns the processed state
         """
-        # TODO why are the signals objects instead of ints in the processed obs space?
+        
+        new_state = self.discrete_cyclic_to_sin_and_cos(agent_state, is_obs_space=False)
+        return new_state
 
-        new_state = agent_state.copy()
-        for k in self.raw_observation_space.keys():
+    # def prepare_cyclic_signal_obs_space(self):
+    #     keys_to_delete = []
+    #     for k in self.raw_observation_space.keys():
+    #         if 'signal__' in k:
+    #             keys_to_delete.append(k)
+        
+    #     new_keys_recipes = []
+    #     for k in keys_to_delete:
+    #         agent_of_signal = k[-2:]
+    #         sin_recipe = {
+    #             'new_key_name': f'sin_signal_{agent_of_signal}',
+    #             'ingredients': [k],
+    #             'pot': self.sin_part_of_cyclic
+    #         }
+    #         cos_recipe = {
+    #             'new_key_name': f'cos_signal_{agent_of_signal}',
+    #             'ingredients': {'phase': },
+    #             'pot': self.cos_part_of_cyclic
+    #         }
+            
+    #         new_keys_recipes.append(sin_recipe)
+    #         new_keys_recipes.append(cos_recipe)
+    
+    # def sin_part_of_cyclic(self, *args):
+    #     phase = args[0]
+    #     np.sin(args[0] * 2 * np.pi / self.)
+    
+    def discrete_cyclic_to_sin_and_cos(self, raw_state: dict, is_obs_space: bool):
+        """
+        This function takes a raw state / obs_space and returns 
+        This function has two modes - modify the observation space, or modify the state.
+        Raw state could also refer to the raw observation space.
+        """
+        new_state = raw_state.copy()
+        for k in raw_state.keys():
             cyclic_dict = {}
             if 'signal__' in k:
                 agent_of_signal = k[-2:]
-                number_of_phases = self.raw_observation_space[k].n
-                cyclic_dict[f'signal_sin_{agent_of_signal}'] = np.sin(agent_state[k] * 2 * np.pi / number_of_phases)
-                cyclic_dict[f'signal_cos_{agent_of_signal}'] = np.cos(agent_state[k] * 2 * np.pi / number_of_phases)
+                sin_name = f'signal_sin_{agent_of_signal}'
+                cos_name = f'signal_cos_{agent_of_signal}'
+                if is_obs_space:
+                    cyclic_dict[sin_name] = cyclic_dict[cos_name] = Box(-1, 1)
+                else:
+                    number_of_phases = self.net_phases[agent_of_signal]
+                    cyclic_dict[sin_name] = np.sin(raw_state[k] * 2 * np.pi / number_of_phases)
+                    cyclic_dict[cos_name] = np.cos(raw_state[k] * 2 * np.pi / number_of_phases)
                 del new_state[k]
             new_state.update(cyclic_dict)
-
+            
         return new_state
-
-    # @staticmethod
-    # def discrete_cyclic_to_sin_and_cos():
-    #     """
-    #
-    #
-    #     """

@@ -9,10 +9,12 @@ class SmartNet(BaseAgent):
     def __init__(self, nodes_num: int, net_obs_space: Dict, net_action_space: Dict, neighbors_weight: float) -> None:
         self.size = nodes_num
         self.leadership = self.get_leadership()
+        self.obs_space = net_obs_space
+        self.phases = self.get_phases()
         agents = {}
         for i in range(nodes_num):
             agent_name = f"i{i}"
-            agent = SmartAgent(agent_name, net_action_space, net_obs_space, neighbors_weight, self.leadership)
+            agent = SmartAgent(agent_name, net_action_space, net_obs_space, neighbors_weight, self.leadership, self.phases)
             agents[agent_name] = agent
         self.agents = agents
         
@@ -31,13 +33,15 @@ class SmartNet(BaseAgent):
                 net_output, action = self.agents[agent_name].sample_action(agent_state)
                 actions.update(action)
                 nets_outputs.update(net_output)
+                
+        # TODO Create a function for that, so the code isn't duplicated
         
         # Use the leader's net_outputs to get the follower's chosen actions.
         state_with_net_outputs = state.copy()
         state_with_net_outputs.update(nets_outputs)
         for agent_name, is_leader in self.leadership.items():
             if not is_leader:
-                agent_state = self.agents[agent_name].filter_agent_state_from_net_state(state_with_net_outputs)
+                agent_state = self.agents[agent_name].filter_and_process_agent_state(state_with_net_outputs)
                 _, action = self.agents[agent_name].sample_action(agent_state)
                 actions.update(action)
                 
@@ -67,7 +71,7 @@ class SmartNet(BaseAgent):
         Add the transition to the replay buffer.
         """
         for agent in self.agents.values():
-            agent_state = agent.filter_agent_state_from_net_state(net_state)
+            agent_state = agent.filter_and_process_agent_state(net_state)
             agent_action = SmartAgent.filter_agent_dict_from_net_dict(agent.name, net_action)
             agent_reward = rewards.loc[agent.name]
             agent.memory.push(agent_state, agent_action, agent_reward, is_last_step)
@@ -143,3 +147,15 @@ class SmartNet(BaseAgent):
             leadership[f'i{i}'] = False if i%2 == 0 else True
             
         return leadership
+    
+    def get_phases(self) -> dict:
+        """
+        Extract each agent's num of phases from the net's observation space
+        """
+        phases = {}
+        for k,v in self.obs_space.items():
+            if 'signal___' in k:
+                agent_name = k[-2:]
+                phases[agent_name] = v.n
+                
+        return phases
