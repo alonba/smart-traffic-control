@@ -26,6 +26,7 @@ num_of_nodes_in_grid = len(env.model.objects['intersection'])
 
 # Extract data from env
 turns_on_red = env_process.get_turns_on_red(env)
+phases = env_process.get_phases(env, turns_on_red)
 
 # Init agents (a net holds agents, one for each node)
 smart_net = SmartNet(
