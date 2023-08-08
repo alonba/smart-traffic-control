@@ -109,6 +109,8 @@ class SmartAgent(BaseAgent):
         Gets the smart_net observation space, and returns the observation space of the agent.
         The observation space of the agent also includes the neighbor's hand-picked observations.
         """
+        # TODO have 3 different attributes for the agent - self_space, neighbor_space, stackelberg_space
+        # and have a variable that points to the three of them that we can use when we need the complete space
         agent_obs_space = SmartAgent.filter_agent_obs_space_from_net_obs_space(self.name, net_obs_space, self.turns_on_red)
         if hpam.SHARE_STATE:
             neighbors_obs_space = self.filter_neighbors_obs_space_from_net_obs_space(net_obs_space)
@@ -300,7 +302,6 @@ class SmartAgent(BaseAgent):
         One option is to create a tuple that holds (keys_to_delete, new_keys, key_to_use_for_processing(is it the same ones as keys_to_delete?), process_function that takes the arguments from the keys_to_use and outputs the processed data)
         Such that when the state process step comes, we just need to systematically iterate over all this tuples, and send the required data to the relevant funcs, and receive a new, processed, state.
         """
-        # TODO
         new_obs_space = self.discrete_cyclic_to_sin_and_cos(self.raw_obs_space, is_obs_space=True)
         new_obs_space = self.sum_neighbor_donations(new_obs_space, is_obs_space=True)
         return new_obs_space
@@ -361,7 +362,3 @@ class SmartAgent(BaseAgent):
             
         return new_state
     
-    def remove_turns_on_red(self, ):
-        """
-        Remove the turns on red from the observation space.
-        """
