@@ -5,11 +5,9 @@ def get_turns_on_red(env) -> pd.DataFrame:
     If turn-on-red is False, the df will return empty.
     """
     
-    ALL_RED4 = env.model._objects['signal-phase'][6]
-
     turns_on_red = []
     for k,v in env.non_fluents.items():
-        if ('GREEN' in k) and (ALL_RED4 in k) and v:
+        if ('GREEN' in k) and ('ALL-RED4' in k) and v:
             k = k.replace('__', '-')
             green, l, from_1, to_1, l, from_2, to_2, all, red = k.split('-')
             turns_on_red.append({
@@ -21,47 +19,28 @@ def get_turns_on_red(env) -> pd.DataFrame:
                 
     return pd.DataFrame(turns_on_red)
 
-def get_phases(env, turns_on_red: pd.DataFrame) -> pd.DataFrame:
+def get_phases(env) -> pd.DataFrame:
     """
     Extract the data about the phases -
     Which phases do we have and what do they mean?
     """
     
-    # greens = []
-    # for v in env.model._nonfluents['GREEN']:
-    #     if v:
-    #         greens.append(v)
-    # greens = pd.DataFrame(greens)
+    ALL_RED = 'ALL-RED'
     
-    phases = []
-    for k,v in env.non_fluents.items():
-        if ('LEFT' in k) or ('THROUGH' in k) and v:
-            k = k.replace('__', '-')
-            green, l, from_1, to_1, l, from_2, to_2, nw, se, left_thourgh = k.split('-')
-            if(to_1 == from_2 and from_1 != to_2):
-                phases.append({
-                    'dir': nw + '_' + se,
-                    'left_through': left_thourgh,
-                    'from': from_1, 
-                    'pivot': to_1,
-                    'to': to_2
-                })
-    phases = pd.DataFrame(phases)
-            
-    new_df = pd.merge(phases, turns_on_red,  how='left', on=['from','pivot','to'])
-    new_df = new_df.fillna('False')
-    new_df = new_df[new_df['is_turn_on_red'] != True].iloc[:,:-1].reset_index(drop=True)
-    
-    turns = []
-    for k,v in env.non_fluents.items():
-        if ('TURN' in k) and v:
-            k = k.replace('__', '-')
-            turn, l, from_1, to_1, l, from_2, to_2 = k.split('-')
-            turns.append({
-                'from': from_1, 
-                'pivot': to_1,
-                'to': to_2,
-                'turn': True
-            })
-    turns = pd.DataFrame(turns)
-    
+    phases_info = []
+    green_turns_raw = env._visualizer.green_turns_by_intersection_phase
+    for agent_name in green_turns_raw:
+        turns_on_red = set(green_turns_raw[agent_name][ALL_RED])
+        for phase_name, green_turns_during_phase in green_turns_raw[agent_name].items():
+            if ALL_RED not in phase_name:
+                turns_in_phase_without_turns_on_red = set(green_turns_during_phase) - turns_on_red
+                for turn in turns_in_phase_without_turns_on_red:
+                    turn_parsed = {
+                        'phase': phase_name,
+                        'from': turn[0].split('-')[1],
+                        'pivot': agent_name,
+                        'to': turn[1].split('-')[2]
+                    }
+                    phases_info.append(turn_parsed)
+                    
+    return pd.DataFrame(phases_info)

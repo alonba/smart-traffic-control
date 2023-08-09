@@ -24,9 +24,13 @@ instance = f"problem/{hpam.GRID_SIZE}.rddl"
 env = RDDLEnv.RDDLEnv(domain=domain, instance=instance)
 num_of_nodes_in_grid = len(env.model.objects['intersection'])
 
+# Set visualizer
+viz = ExampleManager.GetEnvInfo('Traffic').get_visualizer()
+env.set_visualizer(viz)
+
 # Extract data from env
 turns_on_red = env_process.get_turns_on_red(env)
-phases = env_process.get_phases(env, turns_on_red)
+phases = env_process.get_phases(env)
 
 # Init agents (a net holds agents, one for each node)
 smart_net = SmartNet(
@@ -36,10 +40,6 @@ smart_net = SmartNet(
     neighbors_weight=args.neighbors_weight,
     turns_on_red = turns_on_red
     )
-
-# Set visualizer
-viz = ExampleManager.GetEnvInfo('Traffic').get_visualizer()
-env.set_visualizer(viz)
 
 # Initialize the SummaryWriter for TensorBoard. Its output will be written to ./runs/
 run_name = f'\
