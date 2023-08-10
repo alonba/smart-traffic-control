@@ -30,7 +30,7 @@ env.set_visualizer(viz)
 
 # Extract data from env
 turns_on_red = env_process.get_turns_on_red(env)
-phases = env_process.get_phases(env)
+phases_greens = env_process.get_green_turns_per_phase(env)
 
 # Init agents (a net holds agents, one for each node)
 smart_net = SmartNet(
@@ -38,7 +38,8 @@ smart_net = SmartNet(
     net_obs_space=env.observation_space, 
     net_action_space=env.action_space, 
     neighbors_weight=args.neighbors_weight,
-    turns_on_red = turns_on_red
+    turns_on_red = turns_on_red,
+    phases_greens = phases_greens
     )
 
 # Initialize the SummaryWriter for TensorBoard. Its output will be written to ./runs/

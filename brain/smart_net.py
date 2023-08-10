@@ -6,16 +6,17 @@ from brain.agent import SmartAgent
 import brain.hyper_params as hpam
 
 class SmartNet(BaseAgent):
-    def __init__(self, nodes_num: int, net_obs_space: Dict, net_action_space: Dict, neighbors_weight: float, turns_on_red: pd.DataFrame) -> None:
+    def __init__(self, nodes_num: int, net_obs_space: Dict, net_action_space: Dict, neighbors_weight: float, turns_on_red: pd.DataFrame, phases_greens: pd.DataFrame) -> None:
         self.size = nodes_num
         self.leadership = self.get_leadership()
         self.obs_space = net_obs_space
-        self.phases = self.get_phases()
+        self.num_of_phases_per_agent = self.get_num_of_phases_per_agent()
         self.turns_on_red = turns_on_red
+        self.phases_greens = phases_greens
         agents = {}
         for i in range(nodes_num):
             agent_name = f"i{i}"
-            agent = SmartAgent(agent_name, net_action_space, net_obs_space, neighbors_weight, self.leadership, self.phases, turns_on_red)
+            agent = SmartAgent(agent_name, net_action_space, net_obs_space, neighbors_weight, self.leadership, self.num_of_phases_per_agent, turns_on_red, phases_greens)
             agents[agent_name] = agent
         self.agents = agents
         
@@ -149,7 +150,7 @@ class SmartNet(BaseAgent):
             
         return leadership
     
-    def get_phases(self) -> dict:
+    def get_num_of_phases_per_agent(self) -> dict:
         """
         Extract each agent's num of phases from the net's observation space
         """

@@ -15,11 +15,12 @@ class SmartAgent(BaseAgent):
     A smart agent is a single traffic light.
     # TODO make the agent inherit the smart_net object (or at least just receive the smart_net as attribute)
     """
-    def __init__(self, name: str, net_action_space: Dict, net_state: Dict, neighbors_weight: float, leadership: dict, phases: dict, turns_on_red: pd.DataFrame) -> None:
+    def __init__(self, name: str, net_action_space: Dict, net_state: Dict, neighbors_weight: float, leadership: dict, num_of_phases_per_agent: dict, turns_on_red: pd.DataFrame, phases_greens: pd.DataFrame) -> None:
         self.name = name
         self.is_leader = leadership[self.name]
-        self.net_phases = phases
+        self.net_num_of_phases_per_agent = num_of_phases_per_agent
         self.turns_on_red = turns_on_red
+        self.net_phases_greens = phases_greens
         self.action_space = Dict(SmartAgent.filter_agent_dict_from_net_dict(self.name, net_action_space))
         self.neighbors = self.get_neighbors(net_state, leadership)
         self.neighbors_weight = (neighbors_weight / len(self.neighbors)) if (len(self.neighbors) > 0) else 0
@@ -304,6 +305,7 @@ class SmartAgent(BaseAgent):
         """
         new_obs_space = self.discrete_cyclic_to_sin_and_cos(self.raw_obs_space, is_obs_space=True)
         new_obs_space = self.sum_neighbor_donations(new_obs_space, is_obs_space=True)
+        new_obs_space = self.sum_green_queues_per_phase(new_obs_space, is_obs_space=True)
         return new_obs_space
 
     def process_state(self, agent_state: dict) -> dict:
@@ -313,6 +315,7 @@ class SmartAgent(BaseAgent):
         """
         new_state = self.discrete_cyclic_to_sin_and_cos(agent_state, is_obs_space=False)
         new_state = self.sum_neighbor_donations(new_state, is_obs_space=False)
+        new_state = self.sum_green_queues_per_phase(new_state, is_obs_space=False)
         return new_state
     
     def discrete_cyclic_to_sin_and_cos(self, raw_state: dict, is_obs_space: bool) -> dict:
@@ -330,7 +333,7 @@ class SmartAgent(BaseAgent):
                 if is_obs_space:
                     cyclic_dict[sin_name] = cyclic_dict[cos_name] = Box(-1, 1)
                 else:
-                    number_of_phases = self.net_phases[agent_of_signal]
+                    number_of_phases = self.net_num_of_phases_per_agent[agent_of_signal]
                     cyclic_dict[sin_name] = np.sin(raw_state[k] * 2 * np.pi / number_of_phases)
                     cyclic_dict[cos_name] = np.cos(raw_state[k] * 2 * np.pi / number_of_phases)
                 del new_state[k]
@@ -362,3 +365,22 @@ class SmartAgent(BaseAgent):
             
         return new_state
     
+    def sum_green_queues_per_phase(self, raw_state: dict, is_obs_space: bool) -> dict:
+        """
+        Instead of feeding the DQNs with raw data about the number of cars in each queue,
+        We will try to make its life easier by summing up the queues relevant to each phase.
+        """
+        agent_phases_greens = self.net_phases_greens[self.net_phases_greens['pivot'] == self.name]
+        new_state = raw_state.copy()
+        phases = agent_phases_greens['phase'].unique()
+        for phase in phases:
+            turns_of_phase = agent_phases_greens[agent_phases_greens['phase'] == phase]
+            sum = 0    # Used only on state, not on obs_space
+            for index, turn in turns_of_phase.iterrows():
+                turn_str = f'q___l-{turn["from"]}-{turn["pivot"]}__l-{turn["pivot"]}-{turn["to"]}'
+                if not is_obs_space:
+                    sum += new_state[turn_str]
+                del new_state[turn_str]
+            new_state[phase] = Box(0, np.inf) if is_obs_space else sum
+                
+        return new_state

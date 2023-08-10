@@ -19,7 +19,7 @@ def get_turns_on_red(env) -> pd.DataFrame:
                 
     return pd.DataFrame(turns_on_red)
 
-def get_phases(env) -> pd.DataFrame:
+def get_green_turns_per_phase(env) -> pd.DataFrame:
     """
     Extract the data about the phases -
     Which phases do we have and what do they mean?
