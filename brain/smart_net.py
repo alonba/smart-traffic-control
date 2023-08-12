@@ -153,6 +153,7 @@ class SmartNet(BaseAgent):
     def get_num_of_phases_per_agent(self) -> dict:
         """
         Extract each agent's num of phases from the net's observation space
+        # TODO take this data from the phases df 
         """
         phases = {}
         for k,v in self.obs_space.items():
