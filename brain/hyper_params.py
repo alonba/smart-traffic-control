@@ -22,6 +22,8 @@ TAU = 0.005                             # The update rate of the target network
 IS_SOFT = False                         # Hard or Soft update
 HARD_UPDATE_N = 12                      # Hard update every N episodes
 
+IS_STATE_USE_Q = True                   # Should the state for an agent use the number of cars in the queues of the agent.
+IS_STATE_USE_NC = True                  # Should the state for an agent use the number of cars on links coming toward the agent
 REWARD_TYPE = Observability.QUEUE       # Wether to use number of cars on link (Nc) or in queue (q) for reward calculation.
 REWARD_DOWNSCALE = 1                    # Down-scaling the reward by this factor, for stabler training process  #TODO later - calculate the downscaling factor
 NEIGHBORS_WEIGHT = 1                    # The weight an agent gives to his neighbors' rewards. Sums all neighbors weights to 1 for each agent. Meaning - if an agent has 2 neighbors, beta=0.5. if he has 3->beta=0.3333

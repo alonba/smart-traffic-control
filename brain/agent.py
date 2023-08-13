@@ -73,17 +73,21 @@ class SmartAgent(BaseAgent):
         """
         signal_obs = 'signal'
         q_regex = f"^q___l-.\d+-{agent_name}__l-{agent_name}-.\d+"
-        
+        nc_regex = f"Nc___l-.\d+-{agent_name}"
         agent_turns_on_red = turns_on_red[turns_on_red['pivot'] == agent_name]
         
         observations = {}
         for k,v in net_obs_space.items():
             if signal_obs in k and agent_name in k:    # If signal / signal_t AND relevant for agent.
                 observations[k] = v
-            elif re.search(q_regex, k):       # If queue
+            elif re.search(q_regex, k) and hpam.IS_STATE_USE_Q:       # If queue
                 prefix, from_1, to_1, from_2, to_2 = k.split('-')
                 is_turn_on_red = ((agent_turns_on_red['from'] == from_1) * (agent_turns_on_red['to'] == to_2)).any()
                 if (from_1 != to_2) and not is_turn_on_red:
+                    observations[k] = v
+            elif re.search(nc_regex, k) and hpam.IS_STATE_USE_NC:       # If number of cars
+                prefix, from_1, to_1 = k.split('-')
+                if to_1 == agent_name:
                     observations[k] = v
 
         return observations
