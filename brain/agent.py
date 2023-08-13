@@ -10,6 +10,8 @@ from brain.dqn import DQN
 from brain.memory import ReplayMemory, Transition
 import brain.hyper_params as hpam
 
+# TODO replace all dictionaries with pandas DF
+
 class SmartAgent(BaseAgent):
     """
     A smart agent is a single traffic light.

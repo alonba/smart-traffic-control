@@ -131,7 +131,7 @@ class SmartNet(BaseAgent):
         # Calculate a weighted sum of self and neighboring rewards
         if hpam.REWARD_TYPE == 'q':
             weighted_rewards = self_rewards_q.copy().rename('weighted')
-        else:
+        else:    # hpam.REWARD_TYPE = 'Nc'
             weighted_rewards = self_rewards_Nc.copy().rename('weighted')
         for agent in self.agents.values():
             neighbors_reward = agent.calculate_neighbors_reward(cars_on_queues)
