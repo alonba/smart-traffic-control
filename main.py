@@ -50,7 +50,10 @@ Reward-{hpam.REWARD_TYPE}_\
 Explore{hpam.EXPLORE_CHANCE}_\
 Beta{args.neighbors_weight}_\
 StateShare-{hpam.SHARE_STATE}_\
-Stackelberg-{hpam.STACKELBERG}\
+Stackelberg-{hpam.STACKELBERG}_\
+StateQ-{hpam.IS_STATE_USE_Q}_\
+StateNc-{hpam.IS_STATE_USE_NC}_\
+Cyclic-{hpam.IS_PRE_PROCESS_PHASE_TO_CYCLIC}\
 '
 writer = SmartWriter(run_name)
 
