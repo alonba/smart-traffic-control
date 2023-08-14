@@ -22,6 +22,8 @@ TAU = 0.005                             # The update rate of the target network
 IS_SOFT = False                         # Hard or Soft update
 HARD_UPDATE_N = 12                      # Hard update every N episodes
 
+IS_PRE_PROCESS_PHASE_TO_CYCLIC = True  # Should we perform the cyclic transformation to the phase state
+
 IS_STATE_USE_Q = True                   # Should the state for an agent use the number of cars in the queues of the agent.
 IS_STATE_USE_NC = True                  # Should the state for an agent use the number of cars on links coming toward the agent
 REWARD_TYPE = Observability.QUEUE       # Wether to use number of cars on link (Nc) or in queue (q) for reward calculation.

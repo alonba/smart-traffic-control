@@ -309,7 +309,9 @@ class SmartAgent(BaseAgent):
         One option is to create a tuple that holds (keys_to_delete, new_keys, key_to_use_for_processing(is it the same ones as keys_to_delete?), process_function that takes the arguments from the keys_to_use and outputs the processed data)
         Such that when the state process step comes, we just need to systematically iterate over all this tuples, and send the required data to the relevant funcs, and receive a new, processed, state.
         """
-        new_obs_space = self.discrete_cyclic_to_sin_and_cos(self.raw_obs_space, is_obs_space=True)
+        new_obs_space = self.raw_obs_space.copy()
+        if hpam.IS_PRE_PROCESS_PHASE_TO_CYCLIC:
+            new_obs_space = self.discrete_cyclic_to_sin_and_cos(new_obs_space, is_obs_space=True)
         new_obs_space = self.sum_neighbor_donations(new_obs_space, is_obs_space=True)
         new_obs_space = self.sum_green_queues_per_phase(new_obs_space, is_obs_space=True)
         return new_obs_space
@@ -319,7 +321,9 @@ class SmartAgent(BaseAgent):
         Process the raw state to create better features for the NN
         Returns the processed state
         """
-        new_state = self.discrete_cyclic_to_sin_and_cos(agent_state, is_obs_space=False)
+        new_state = agent_state.copy()
+        if hpam.IS_PRE_PROCESS_PHASE_TO_CYCLIC:
+            new_state = self.discrete_cyclic_to_sin_and_cos(new_state, is_obs_space=False)
         new_state = self.sum_neighbor_donations(new_state, is_obs_space=False)
         new_state = self.sum_green_queues_per_phase(new_state, is_obs_space=False)
         return new_state
