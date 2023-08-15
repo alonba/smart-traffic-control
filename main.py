@@ -46,11 +46,12 @@ smart_net = SmartNet(
 run_name = f'\
 {aux.now()}_\
 {hpam.GRID_SIZE}_\
-Reward-{hpam.REWARD_TYPE}_\
+Reward-{hpam.REWARD_TYPE.value}_\
 Explore{hpam.EXPLORE_CHANCE}_\
 Beta{args.neighbors_weight}_\
 StateShare-{hpam.SHARE_STATE}_\
 Stackelberg-{hpam.STACKELBERG}_\
+LSTM-{hpam.LSTM}_\
 StateQ-{hpam.IS_STATE_USE_Q}_\
 StateNc-{hpam.IS_STATE_USE_NC}_\
 Cyclic-{hpam.IS_PRE_PROCESS_PHASE_TO_CYCLIC}\
