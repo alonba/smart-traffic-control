@@ -39,8 +39,7 @@ class SmartNet(BaseAgent):
         # TODO Create a function for that, so the code isn't duplicated
         
         # Use the leader's net_outputs to get the follower's chosen actions.
-        state_with_net_outputs = state.copy()
-        state_with_net_outputs.update(nets_outputs)
+        state_with_net_outputs = {**state, **nets_outputs}
         for agent_name, is_leader in self.leadership.items():
             if not is_leader:
                 agent_state = self.agents[agent_name].filter_and_process_agent_state(state_with_net_outputs)
@@ -67,16 +66,26 @@ class SmartNet(BaseAgent):
                 agent.train_target_net_hard()
         
         return pd.Series(losses)
-                
+    
+    
     def remember(self, net_state: dict, net_action: dict, rewards: pd.Series, is_last_step: bool) -> None:
         """
         Add the transition to the replay buffer.
         """
         for agent in self.agents.values():
             agent_state = agent.filter_and_process_agent_state(net_state)
-            agent_action = SmartAgent.filter_agent_dict_from_net_dict(agent.name, net_action)
-            agent_reward = rewards.loc[agent.name]
-            agent.memory.push(agent_state, agent_action, agent_reward, is_last_step)
+            
+            # Add data to the neighbors shared data memory
+            if hpam.LSTM:
+                memory_size = agent.store_neighbors_shared_memory(agent_state)
+                agent_state['neighbors'] = agent.shared_state_memory_to_tensor()
+
+            # Add data to the replay buffer
+            # TODO create a function for this section
+            if (hpam.LSTM and (memory_size == hpam.K_STEPS_BACK)) or (not hpam.LSTM):
+                agent_action = SmartAgent.filter_agent_dict_from_net_dict(agent.name, net_action)
+                agent_reward = rewards.loc[agent.name]
+                agent.memory.push(agent_state['own'], agent_state['neighbors'], agent_action, agent_reward, is_last_step)
             
     @staticmethod
     def get_cars_on_links(state: dict) -> pd.DataFrame:
@@ -146,7 +155,7 @@ class SmartNet(BaseAgent):
         """
         leadership = {}
         for i in range(self.size):
-            leadership[f'i{i}'] = False if i%2 == 0 else True
+            leadership[f'i{i}'] = False if i%2 == 0 else (True and hpam.STACKELBERG)
             
         return leadership
     

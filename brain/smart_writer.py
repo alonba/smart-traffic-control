@@ -1,6 +1,7 @@
 import torch
 import pandas as pd
 from brain.smart_net import SmartNet
+import brain.hyper_params as hpam
 from torch.utils.tensorboard import SummaryWriter
 
 class SmartWriter(SummaryWriter):
@@ -25,15 +26,24 @@ class SmartWriter(SummaryWriter):
                     layer_name = f'{agent.name}/{model_name}/layer_{layer_number}'
                     self.weight_histograms_linear(step, param, layer_name)
                     
-    def graphs(self, smart_net: SmartNet, state: dict):
-        """
-        Writes the nets structure to TensorBoard
-        """
-        for agent in smart_net.agents.values():
-            agent_state = agent.filter_and_process_agent_state(state)
-            agent_state_tensor = agent.dict_vals_to_tensor(agent_state)
-            self.add_graph(agent.policy_net, agent_state_tensor)
-            self.add_graph(agent.target_net, agent_state_tensor)
+    # def graphs(self, smart_net: SmartNet, state: dict):
+    #     """
+    #     Writes the nets structure to TensorBoard
+    #     """
+    #     if not hpam.LSTM:
+    #         for agent in smart_net.agents.values():
+    #             agent_state = agent.filter_and_process_agent_state(state)
+    #             if hpam.LSTM:
+    #                 agent.policy_net = SmartWriter.set_lstms_requires_grad_to_false(agent.policy_net)
+    #                 agent.target_net = SmartWriter.set_lstms_requires_grad_to_false(agent.target_net)
+    #             self.add_graph(agent.policy_net, input_to_model=[agent_state['own'], agent_state['neighbors']])
+    #             self.add_graph(agent.target_net, input_to_model=[agent_state['own'], agent_state['neighbors']])
+    
+    @staticmethod
+    def set_lstms_requires_grad_to_false(model):
+        for lstm in model.lstms.values():
+            for layer in lstm.values():
+                layer.requires_grad_(False)
             
     def rewards_or_losses(self, smart_net: SmartNet, title: str, rewards_or_losses: pd.Series, episode: int):
         """

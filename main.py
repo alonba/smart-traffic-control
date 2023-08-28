@@ -9,9 +9,12 @@ from brain.smart_writer import SmartWriter
 import brain.hyper_params as hpam
 import brain.env_process as env_process
 
+# TODO type checking + all funcs to have input and output types
+# TODO check that it works with 1 agent
+
 start_time = datetime.datetime.now()
 
-# Search hpams by bash script
+# Search hyper params by bash script
 parser = argparse.ArgumentParser(description='Run smart traffic control simulation')
 parser.add_argument('-hu', '--hard_update', type=int, default=hpam.HARD_UPDATE_N, help='Hard update once every N episodes')
 parser.add_argument('-w', '--neighbors_weight', type=float, default=hpam.NEIGHBORS_WEIGHT, help='Weight of neighbors rewards')
@@ -116,6 +119,6 @@ if __name__=="__main__":
     aux.save_to_pickle(smart_net, output_dir + '/smart_net')
     
     # Save graphs of models to TensorBoard
-    writer.graphs(smart_net, state_with_net_outputs)
+    # writer.graphs(smart_net, state_with_net_outputs)
     
     end_of_file = True

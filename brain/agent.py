@@ -4,11 +4,13 @@ import random
 from gym.spaces import Dict, Box
 import numpy as np
 import pandas as pd
-from collections import OrderedDict
+from collections import OrderedDict, deque
 from pyRDDLGym.Policies.Agents import BaseAgent
 from brain.dqn import DQN
 from brain.memory import ReplayMemory, Transition
 import brain.hyper_params as hpam
+
+# TODO Reduce as much as possible GPU(or MPS)-CPU communications. It takes a lot of time.
 
 # TODO replace all dictionaries with pandas DF
 
@@ -26,21 +28,52 @@ class SmartAgent(BaseAgent):
         self.action_space = Dict(SmartAgent.filter_agent_dict_from_net_dict(self.name, net_action_space))
         self.neighbors = self.get_neighbors(net_state, leadership)
         self.neighbors_weight = (neighbors_weight / len(self.neighbors)) if (len(self.neighbors) > 0) else 0
-        self.raw_obs_space = self.filter_agent_and_neighbors_obs_space_from_net_obs_space(net_state, net_action_space)
-        self.processed_obs_space = self.process_obs_space()
-
-        n_obs = len(self.processed_obs_space)
+        
+        self.filter_agent_and_neighbors_obs_space_from_net_obs_space(net_state, net_action_space)
+        self.process_obs_space()
+        
+        if hpam.LSTM:
+            self.init_neighbors_shared_data_memory()
+        
+        n_own_obs = len(self.proc_agent_obs_space)
+        n_neighbor_obs = self.get_lengths_of_neighbors_obs_spaces()
         n_actions = len(self.action_space)
         
         # Init networks
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.policy_net = DQN(n_obs, n_actions).to(self.device)
-        self.target_net = DQN(n_obs, n_actions).to(self.device)
+        self.set_device()
+        self.policy_net = DQN(n_own_obs, n_neighbor_obs, n_actions, self.neighbors, device=self.device)
+        self.target_net = DQN(n_own_obs, n_neighbor_obs, n_actions, self.neighbors, device=self.device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
 
         self.optimizer = torch.optim.RMSprop(self.policy_net.parameters(), lr=hpam.LR)
         self.memory = ReplayMemory(hpam.MEMORY_SIZE)
         self.criterion = torch.nn.SmoothL1Loss()
+    
+    def get_lengths_of_neighbors_obs_spaces(self):
+        lengths = {}
+        sum = 0
+        for neighbor, neighbor_obs_space in self.proc_neighbors_obs_space.items():
+            lengths[neighbor] = len(neighbor_obs_space)
+            sum += lengths[neighbor]
+        lengths['sum'] = sum
+        return lengths
+    
+    def init_neighbors_shared_data_memory(self):
+        shared_data_memory = {}
+        for neighbor in self.neighbors:
+            shared_data_memory[neighbor] = deque(maxlen=hpam.K_STEPS_BACK)
+        
+        self.neighbors_shared_data_memory = shared_data_memory
+    
+    def set_device(self):
+        if torch.cuda.is_available():
+            device = 'cuda'
+        # elif torch.backends.mps.is_available() and torch.backends.mps.is_built():
+        elif torch.backends.mps.is_available() and hpam.ALLOW_MPS:
+            device = 'mps'
+        else:
+            device = 'cpu'
+        self.device = torch.device(device)
     
     @staticmethod
     def filter_agent_dict_from_net_dict(agent_name, net_dict) -> dict:
@@ -51,16 +84,29 @@ class SmartAgent(BaseAgent):
         return agent_dict
 
     def filter_and_process_agent_state(self, net_state: dict):
-        agent_state = self.filter_agent_state_from_net_state(net_state)
-        processed_agent_state = self.process_state(agent_state)
-        return processed_agent_state
-
-    def filter_agent_state_from_net_state(self, net_state: dict) -> dict:
         """
-        Gets the net state. Extracts from it just the state fluents relevant for the agent.
+        This function get the net state, and filters the agent state from it.
+        The agent state is split into the self_agent_state, the shared neighbors_state and the Stackelberg state (shared net outputs)
+        The state is being split so we know which part of it goes into the LSTM,
+        to which LSTM, and which goes to the other net inputs.
+        """
+        agent_state = SmartAgent.filter_agent_state_from_net_state(self.agent_obs_space, net_state)
+        all_states = {'own': agent_state}
+        if hpam.SHARE_STATE:
+            neighbors_state = SmartAgent.filter_agent_state_from_net_state(self.neighbors_obs_space, net_state)
+            all_states['neighbors'] = self.split_neighbors_state(neighbors_state)
+        processed_agent_state = self.process_state(all_states)
+        state_tensors = self.state_to_tensors(processed_agent_state)
+        return state_tensors
+
+    @staticmethod
+    def filter_agent_state_from_net_state(obs_space: dict, net_state: dict) -> dict:
+        """
+        Gets the net state.
+        From it, it extracts the state values corresponding to the keys in the given observation space.
         """
         agent_state = {}
-        for k in self.raw_obs_space.keys():
+        for k in obs_space.keys():
             agent_state[k] = net_state[k]
             
         return agent_state
@@ -95,6 +141,7 @@ class SmartAgent(BaseAgent):
     def filter_neighbors_obs_space_from_net_obs_space(self, net_obs_space: Dict) -> dict:
         """
         Gets the smart_net observation space, and returns the observation space of the neighbors of the agent.
+        TODO Create a different dictionary for each neighbor
         """
         to_agent_regex = f"^q___l-.\d+-.\d+__l-.\d+-{self.name}"
         # TODO create a global string for signals
@@ -111,21 +158,23 @@ class SmartAgent(BaseAgent):
 
         return neighbors_obs_space
     
-    def filter_agent_and_neighbors_obs_space_from_net_obs_space(self, net_obs_space: Dict, net_action_space: Dict) -> dict:
+    def filter_agent_and_neighbors_obs_space_from_net_obs_space(self, net_obs_space: Dict, net_action_space: Dict) -> None:
         """
         Gets the smart_net observation space, and returns the observation space of the agent.
         The observation space of the agent also includes the neighbor's hand-picked observations.
         """
-        # TODO have 3 different attributes for the agent - self_space, neighbor_space, stackelberg_space
-        # and have a variable that points to the three of them that we can use when we need the complete space
-        agent_obs_space = SmartAgent.filter_agent_obs_space_from_net_obs_space(self.name, net_obs_space, self.turns_on_red)
+        # TODO wrap all raw obs spaces in one attribute "raw_obs_space" and all processed obs space under "proc_obs_space"
+        self.agent_obs_space = SmartAgent.filter_agent_obs_space_from_net_obs_space(self.name, net_obs_space, self.turns_on_red)
+        self.neighbors_obs_space = {}
+        self.raw_obs_space = self.agent_obs_space.copy()
         if hpam.SHARE_STATE:
-            neighbors_obs_space = self.filter_neighbors_obs_space_from_net_obs_space(net_obs_space)
-            agent_obs_space.update(neighbors_obs_space)
+            self.neighbors_obs_space = self.filter_neighbors_obs_space_from_net_obs_space(net_obs_space)
         if hpam.STACKELBERG:
-            leaders_neighbors_net_outputs_obs_space = self.get_neighboring_leaders_net_outputs_obs_space(net_action_space)
-            agent_obs_space.update(leaders_neighbors_net_outputs_obs_space)
-        return agent_obs_space
+            stackelberg_obs_space = self.get_neighboring_leaders_net_outputs_obs_space(net_action_space)
+            self.neighbors_obs_space.update(stackelberg_obs_space)
+            
+        self.raw_obs_space.update(self.neighbors_obs_space)
+            
     
     def calculate_self_reward_from_Nc(self, cars_on_links: pd.DataFrame) -> float:
         """
@@ -155,11 +204,20 @@ class SmartAgent(BaseAgent):
             reward -= cars_on_queues[going_to_agent_mask * going_from_neighbor_mask]['q'].sum()
         return reward
     
-    def dict_vals_to_tensor(self, d: dict) -> torch.tensor:
+    def state_to_tensors(self, state):
+        state_tensors = {'own': None, 'neighbors': {}}
+        state_tensors['own'] = self.dict_vals_to_tensor(state['own'])
+        if hpam.SHARE_STATE:
+            for neighbor, neighbor_state in state['neighbors'].items():
+                state_tensors['neighbors'][neighbor] = self.dict_vals_to_tensor(state['neighbors'][neighbor])
+            
+        return state_tensors
+    
+    def dict_vals_to_tensor(self, d: dict) -> torch.Tensor:
         """
         Creates and returns a pyTorch tensor made from the dictionary values given.
         """
-        return torch.tensor(list(d.values()), device=self.device).float()
+        return torch.tensor(list(d.values()), device=self.device, dtype=torch.float)
     
     @staticmethod
     def ordered_dict_to_dict(order_dict: OrderedDict) -> dict:
@@ -168,10 +226,62 @@ class SmartAgent(BaseAgent):
             dict[k] = v
         return dict
     
-    def tuple_of_dicts_to_tensor(self, tuple_of_dicts: tuple, output_type: torch.dtype) -> torch.tensor:
+    def tuple_of_dicts_to_tensor(self, tuple_of_dicts: tuple, output_type: torch.dtype) -> torch.Tensor:
         vals_list = [list(d.values()) for d in tuple_of_dicts]
         return torch.tensor(vals_list, device=self.device, dtype=output_type)
 
+    def tuple_of_dicts_of_tensors_to_dict_of_tensor(self, tuple_of_dicts_of_tensors) -> torch.Tensor:
+        # Init the returned tensor
+        result = {}
+        for neighbor in self.neighbors.keys():
+            result[neighbor] = ''
+        
+        # Pivot the data to dict of tensor
+        for dict_of_tensors in tuple_of_dicts_of_tensors:
+            for neighbor, state in dict_of_tensors.items():
+                if hpam.LSTM:
+                    state = state.view(1, hpam.K_STEPS_BACK, -1)                  
+                if result[neighbor] == '':
+                    result[neighbor] = state
+                else:
+                    result[neighbor] = torch.vstack([result[neighbor], state])
+                    
+        return result
+    
+    def split_neighbors_state(self, state: dict) -> dict:
+        """
+        Gets the neighbors state and split it to pandas DataFrames for each neighbor. 
+        """
+        neighbors_state_series = pd.Series(data=state.values(), index=state.keys())
+        
+        broken_state = {}
+        for neighbor in self.neighbors.keys():
+            broken_state[neighbor] = neighbors_state_series[neighbors_state_series.index.str.contains(neighbor)]
+            
+        return broken_state
+    
+    # def merge_divided_state_to_tensor(self, state: dict) -> torch.Tensor:
+    #     """
+    #     Takes the divided (own, neighbors) state and convert to a pyTorch tensor,
+    #     such that all of the agent's own states are first,
+    #     and the neighbors states are then ordered in an ascending way, by their names.
+    #     TODO Don't split the neighbor's state inside, but receive it as an argument.
+    #     """
+    #     state_tensor = self.dict_vals_to_tensor(state['own'])
+        
+    #     neighbors_state = self.split_neighbors_state(state['neighbors'])
+    #     for neighbor_state in neighbors_state.values():
+    #         state_tensor = torch.cat([state_tensor, torch.tensor(neighbor_state.values, device=self.device, dtype=torch.float)])
+
+    #     return state_tensor
+    
+    # def merge_divided_state_tensor(self, state: dict) -> torch.Tensor:
+    #     """
+    #     Gets the state, divided into 'own' and 'neighbors', while the 'neighbors' is also divided into individual neighbors.
+    #     Merges all this tensors and returns the merged big tensor.
+    #     """
+    #     merged_tensor = 
+        
     def sample_action(self, state: dict):
         """
         Gets the state, and returns:
@@ -180,11 +290,11 @@ class SmartAgent(BaseAgent):
         Infer from DQN (policy net), or explore the possible actions, with a pre-set probability.
         Also return the raw probabilities produced by the policy net.
         """
-        
+        # state_tensor = self.merge_divided_state_to_tensor(state)
+                
         # Get the policy net recommendation
         with torch.no_grad():
-            state_tensor = self.dict_vals_to_tensor(state)
-            net_output = self.policy_net(state_tensor)
+            net_output = self.policy_net(state['own'], state['neighbors'])
             
             # TODO move to independent function
             net_output_dict = {}
@@ -221,22 +331,24 @@ class SmartAgent(BaseAgent):
         # This converts batch-array of Transitions to Transition of batch-arrays.
         batch = Transition(*zip(*transitions))
         
-        state_batch = self.tuple_of_dicts_to_tensor(batch.state, output_type=torch.float32)
+        own_state_batch = torch.stack(batch.state_own)
+        neighbors_state_batch = self.tuple_of_dicts_of_tensors_to_dict_of_tensor(batch.state_neighbors)
         action_batch = self.tuple_of_dicts_to_tensor(batch.action, output_type=torch.int64)
-        reward_batch = torch.tensor(batch.reward, device=self.device)
-        next_state_batch = self.tuple_of_dicts_to_tensor(batch.next_state, output_type=torch.float32)
+        reward_batch = torch.tensor(batch.reward, device=self.device, dtype=torch.float)
+        own_next_state_batch = torch.stack(batch.next_state_own)
+        neighbors_next_state_batch = self.tuple_of_dicts_of_tensors_to_dict_of_tensor(batch.next_state_neighbors)
         
         # Compute Q(s_t, a) - the policy_net computes Q(s_t).
         # Then, we ues gather() to select the columns of actions taken.
         # These are the actions which would've been taken for each batch state according to policy_net
         # That is the reward the policy net expects to receive by choosing these actions with these states.
-        state_action_values = self.policy_net(state_batch).gather(1, action_batch)
+        state_action_values = self.policy_net(own_state_batch, neighbors_state_batch).gather(1, action_batch)
         
         # Compute V(s_{t+1}) for all next states.
         # Expected values of actions for next_states are computed based on the "older" target_net
         # Selecting their best reward with max(1)[0].
         with torch.no_grad():
-            next_state_values = self.target_net(next_state_batch).max(1)[0]
+            next_state_values = self.target_net(own_next_state_batch, neighbors_next_state_batch).max(1)[0]
         # Compute the expected Q values
         expected_state_action_values = (next_state_values * hpam.GAMMA) + reward_batch
         
@@ -300,7 +412,7 @@ class SmartAgent(BaseAgent):
                     
         return net_output_obs_space
 
-    def process_obs_space(self) -> dict:
+    def process_obs_space(self) -> None:
         """
         Process the raw observation space to create better features for the NN
         Returns the processed observation space
@@ -309,24 +421,33 @@ class SmartAgent(BaseAgent):
         One option is to create a tuple that holds (keys_to_delete, new_keys, key_to_use_for_processing(is it the same ones as keys_to_delete?), process_function that takes the arguments from the keys_to_use and outputs the processed data)
         Such that when the state process step comes, we just need to systematically iterate over all this tuples, and send the required data to the relevant funcs, and receive a new, processed, state.
         """
-        new_obs_space = self.raw_obs_space.copy()
+        # new_obs_space = self.raw_obs_space.copy()
+        self.proc_agent_obs_space = self.agent_obs_space.copy()
+        self.proc_neighbors_obs_space = self.neighbors_obs_space.copy()
+        
         if hpam.IS_PRE_PROCESS_PHASE_TO_CYCLIC:
-            new_obs_space = self.discrete_cyclic_to_sin_and_cos(new_obs_space, is_obs_space=True)
-        new_obs_space = self.sum_neighbor_donations(new_obs_space, is_obs_space=True)
-        new_obs_space = self.sum_green_queues_per_phase(new_obs_space, is_obs_space=True)
-        return new_obs_space
+            self.proc_agent_obs_space = self.discrete_cyclic_to_sin_and_cos(self.proc_agent_obs_space, is_obs_space=True)
+            self.proc_neighbors_obs_space = self.discrete_cyclic_to_sin_and_cos(self.proc_neighbors_obs_space, is_obs_space=True)
+        if hpam.SHARE_STATE:
+            self.proc_neighbors_obs_space = self.sum_neighbor_donations(self.proc_neighbors_obs_space, is_obs_space=True)
+            self.proc_neighbors_obs_space = self.split_neighbors_state(self.proc_neighbors_obs_space)
+        self.proc_agent_obs_space = self.sum_green_queues_per_phase(self.proc_agent_obs_space, is_obs_space=True)
 
-    def process_state(self, agent_state: dict) -> dict:
+    def process_state(self, state: dict) -> dict:
         """
         Process the raw state to create better features for the NN
         Returns the processed state
         """
-        new_state = agent_state.copy()
         if hpam.IS_PRE_PROCESS_PHASE_TO_CYCLIC:
-            new_state = self.discrete_cyclic_to_sin_and_cos(new_state, is_obs_space=False)
-        new_state = self.sum_neighbor_donations(new_state, is_obs_space=False)
-        new_state = self.sum_green_queues_per_phase(new_state, is_obs_space=False)
-        return new_state
+            state['own'] = self.discrete_cyclic_to_sin_and_cos(state['own'], is_obs_space=False)
+            if hpam.SHARE_STATE:
+                for neighbor in state['neighbors'].keys():
+                    state['neighbors'][neighbor] = self.discrete_cyclic_to_sin_and_cos(state['neighbors'][neighbor].to_dict(), is_obs_space=False)
+        if hpam.SHARE_STATE:
+            for neighbor in state['neighbors'].keys():
+                state['neighbors'][neighbor] = self.sum_neighbor_donations(state['neighbors'][neighbor], is_obs_space=False, neighbor=neighbor)
+        state['own'] = self.sum_green_queues_per_phase(state['own'], is_obs_space=False)
+        return state
     
     def discrete_cyclic_to_sin_and_cos(self, raw_state: dict, is_obs_space: bool) -> dict:
         """
@@ -351,16 +472,16 @@ class SmartAgent(BaseAgent):
             
         return new_state
     
-    def sum_neighbor_donations(self, raw_state: dict, is_obs_space: bool) -> dict:
+    def sum_neighbor_donations(self, raw_state: dict, is_obs_space: bool, neighbor: str = None) -> dict:
         """
         Takes a raw state/obs_space and returns the summed neighbor donations
         """
         neighbors_sum = {}
-        for neighbor in self.neighbors.keys():
-            if is_obs_space:
-                neighbors_sum[f'sum_{neighbor}'] = Box(0, np.inf)
-            else:
-                neighbors_sum[f'sum_{neighbor}'] = 0
+        if is_obs_space:
+            for neighbor in self.neighbors.keys():
+                    neighbors_sum[f'sum_{neighbor}'] = Box(0, np.inf)
+        else:
+            neighbors_sum[f'sum_{neighbor}'] = 0
         
         new_state = raw_state.copy()
         for k in raw_state.keys():
@@ -369,7 +490,8 @@ class SmartAgent(BaseAgent):
                 pivot = broken_q[3]
                 if pivot != self.name:
                     if not is_obs_space:
-                        neighbors_sum[f'sum_{pivot}'] += raw_state[k]
+                        if neighbor == pivot:
+                            neighbors_sum[f'sum_{pivot}'] += raw_state[k]
                     del new_state[k]
         new_state.update(neighbors_sum)
             
@@ -394,3 +516,23 @@ class SmartAgent(BaseAgent):
             new_state[phase] = Box(0, np.inf) if is_obs_space else sum
                 
         return new_state
+    
+    def shared_state_memory_to_tensor(self) -> dict:
+        """
+        Returns a dict with all the neighbor's shared data, as a pyTorch tensor
+        """
+        dict_of_tensors = {}
+        for neighbor in self.neighbors.keys():
+            neighbor_shared_data_tensor = torch.stack(list(self.neighbors_shared_data_memory[neighbor]))
+            dict_of_tensors[neighbor] = neighbor_shared_data_tensor
+        return dict_of_tensors
+    
+    def store_neighbors_shared_memory(self, state: dict) -> int:
+        """
+        stores the neighbor's shared memory.
+        returns the memory size
+        """
+        for neighbor in self.neighbors.keys():
+            self.neighbors_shared_data_memory[neighbor].append(state['neighbors'][neighbor])
+        memory_size = len(self.neighbors_shared_data_memory[neighbor])
+        return memory_size
