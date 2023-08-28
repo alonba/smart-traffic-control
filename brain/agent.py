@@ -19,7 +19,7 @@ class SmartAgent(BaseAgent):
     A smart agent is a single traffic light.
     # TODO make the agent inherit the smart_net object (or at least just receive the smart_net as attribute)
     """
-    def __init__(self, name: str, net_action_space: Dict, net_state: Dict, neighbors_weight: float, leadership: dict, num_of_phases_per_agent: dict, turns_on_red: pd.DataFrame, phases_greens: pd.DataFrame) -> None:
+    def __init__(self, name: str, net_action_space: Dict, net_state: Dict, neighbors_weight: float, leadership: dict, num_of_phases_per_agent: dict, turns_on_red: pd.DataFrame, phases_greens: pd.DataFrame, steps_back: int) -> None:
         self.name = name
         self.is_leader = leadership[self.name]
         self.net_num_of_phases_per_agent = num_of_phases_per_agent
@@ -28,6 +28,7 @@ class SmartAgent(BaseAgent):
         self.action_space = Dict(SmartAgent.filter_agent_dict_from_net_dict(self.name, net_action_space))
         self.neighbors = self.get_neighbors(net_state, leadership)
         self.neighbors_weight = (neighbors_weight / len(self.neighbors)) if (len(self.neighbors) > 0) else 0
+        self.steps_back = steps_back
         
         self.filter_agent_and_neighbors_obs_space_from_net_obs_space(net_state, net_action_space)
         self.process_obs_space()
@@ -58,10 +59,10 @@ class SmartAgent(BaseAgent):
         lengths['sum'] = sum
         return lengths
     
-    def init_neighbors_shared_data_memory(self):
+    def init_neighbors_shared_data_memory(self) -> None:
         shared_data_memory = {}
         for neighbor in self.neighbors:
-            shared_data_memory[neighbor] = deque(maxlen=hpam.K_STEPS_BACK)
+            shared_data_memory[neighbor] = deque(maxlen=self.steps_back)
         
         self.neighbors_shared_data_memory = shared_data_memory
     
@@ -240,7 +241,7 @@ class SmartAgent(BaseAgent):
         for dict_of_tensors in tuple_of_dicts_of_tensors:
             for neighbor, state in dict_of_tensors.items():
                 if hpam.LSTM:
-                    state = state.view(1, hpam.K_STEPS_BACK, -1)                  
+                    state = state.view(1, self.steps_back, -1)                  
                 if result[neighbor] == '':
                     result[neighbor] = state
                 else:

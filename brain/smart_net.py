@@ -6,17 +6,18 @@ from brain.agent import SmartAgent
 import brain.hyper_params as hpam
 
 class SmartNet(BaseAgent):
-    def __init__(self, nodes_num: int, net_obs_space: Dict, net_action_space: Dict, neighbors_weight: float, turns_on_red: pd.DataFrame, phases_greens: pd.DataFrame) -> None:
+    def __init__(self, nodes_num: int, net_obs_space: Dict, net_action_space: Dict, neighbors_weight: float, turns_on_red: pd.DataFrame, phases_greens: pd.DataFrame, steps_back: int) -> None:
         self.size = nodes_num
         self.leadership = self.get_leadership()
         self.obs_space = net_obs_space
         self.num_of_phases_per_agent = self.get_num_of_phases_per_agent()
         self.turns_on_red = turns_on_red
         self.phases_greens = phases_greens
+        self.steps_back = steps_back
         agents = {}
         for i in range(nodes_num):
             agent_name = f"i{i}"
-            agent = SmartAgent(agent_name, net_action_space, net_obs_space, neighbors_weight, self.leadership, self.num_of_phases_per_agent, turns_on_red, phases_greens)
+            agent = SmartAgent(agent_name, net_action_space, net_obs_space, neighbors_weight, self.leadership, self.num_of_phases_per_agent, turns_on_red, phases_greens, steps_back)
             agents[agent_name] = agent
         self.agents = agents
         
@@ -82,7 +83,7 @@ class SmartNet(BaseAgent):
 
             # Add data to the replay buffer
             # TODO create a function for this section
-            if (hpam.LSTM and (memory_size == hpam.K_STEPS_BACK)) or (not hpam.LSTM):
+            if (hpam.LSTM and (memory_size == self.steps_back)) or (not hpam.LSTM):
                 agent_action = SmartAgent.filter_agent_dict_from_net_dict(agent.name, net_action)
                 agent_reward = rewards.loc[agent.name]
                 agent.memory.push(agent_state['own'], agent_state['neighbors'], agent_action, agent_reward, is_last_step)

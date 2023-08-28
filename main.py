@@ -18,7 +18,7 @@ start_time = datetime.datetime.now()
 parser = argparse.ArgumentParser(description='Run smart traffic control simulation')
 parser.add_argument('-hu', '--hard_update', type=int, default=hpam.HARD_UPDATE_N, help='Hard update once every N episodes')
 parser.add_argument('-w', '--neighbors_weight', type=float, default=hpam.NEIGHBORS_WEIGHT, help='Weight of neighbors rewards')
-# parser.add_argument('-e', '--explore', type=float, default=hpam.EXPLORE_CHANCE, help='Exploration probability')
+parser.add_argument('-k', '--steps_back', type=int, default=hpam.K_STEPS_BACK, help='How many steps back does the LSTM can use for training.')
 args = parser.parse_args()
 
 # Init problem
@@ -42,7 +42,8 @@ smart_net = SmartNet(
     net_action_space=env.action_space, 
     neighbors_weight=args.neighbors_weight,
     turns_on_red = turns_on_red,
-    phases_greens = phases_greens
+    phases_greens = phases_greens,
+    steps_back=args.steps_back
     )
 
 # Initialize the SummaryWriter for TensorBoard. Its output will be written to ./runs/
@@ -54,7 +55,7 @@ Explore{hpam.EXPLORE_CHANCE}_\
 Beta{args.neighbors_weight}_\
 StateShare-{hpam.SHARE_STATE}_\
 Stackelberg-{hpam.STACKELBERG}_\
-LSTM-{hpam.LSTM}_\
+LSTM-{hpam.LSTM and args.steps_back}_\
 StateQ-{hpam.IS_STATE_USE_Q}_\
 StateNc-{hpam.IS_STATE_USE_NC}_\
 Cyclic-{hpam.IS_PRE_PROCESS_PHASE_TO_CYCLIC}\
