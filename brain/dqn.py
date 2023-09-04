@@ -15,9 +15,12 @@ class DQN(nn.Module):
         # Determine the number of inputs to the simple (no LSTM) part of the NN
         input_layer_size = n_own_observations
         if hpam.LSTM:
-            input_layer_size += hpam.EMBEDDING_DIM * len(neighbors)
+            input_layer_size = hpam.EMBEDDING_DIM * (len(neighbors) + 1)   # +1 for the own_embedding
         elif hpam.SHARE_STATE:
             input_layer_size += n_neighbor_observations['sum']
+            
+        if hpam.LSTM:
+            self.own_state_encoder_layer = nn.Linear(n_own_observations, hpam.EMBEDDING_DIM)
             
         self.layer1 = nn.Linear(input_layer_size, hpam.NET_WIDTH, device=device)
         self.layer2 = nn.Linear(hpam.NET_WIDTH, hpam.NET_WIDTH, device=device)
@@ -53,6 +56,9 @@ class DQN(nn.Module):
         """
         merged_state = own_state
         if hpam.LSTM:
+            # Run over merged state, with the encoded own state
+            merged_state = self.own_state_encoder_layer(own_state)
+            
             # Put input into LSTM
             lstms_output = {}
             for neighbor in neighbors_state.keys():

@@ -33,7 +33,7 @@ NEIGHBORS_WEIGHT = 0                    # The weight an agent gives to his neigh
 SHARE_STATE = True                      # Whether to share the neighbor's state or not.
 STACKELBERG = SHARE_STATE and False     # Whether we're playing a Stackelberg game.
 
-LSTM = SHARE_STATE and True            # Whether we want to use an LSTM NN as an encoder for the neighbor's shared state.
-K_STEPS_BACK = 20                       # How many steps back do we feed the LSTM with
+LSTM = SHARE_STATE and True             # Whether we want to use an LSTM NN as an encoder for the neighbor's shared state.
+K_STEPS_BACK = 25                       # How many steps back do we feed the LSTM with
 HIDDEN_DIM = 32                         # LSTM layer output size
-EMBEDDING_DIM = 3                       # The size of the embedding space created by the LSTM
+EMBEDDING_DIM = 16                      # The size of the embedding space created by the LSTM
