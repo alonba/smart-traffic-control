@@ -26,18 +26,21 @@ class SmartWriter(SummaryWriter):
                     layer_name = f'{agent.name}/{model_name}/layer_{layer_number}'
                     self.weight_histograms_linear(step, param, layer_name)
                     
-    # def graphs(self, smart_net: SmartNet, state: dict):
-    #     """
-    #     Writes the nets structure to TensorBoard
-    #     """
-    #     if not hpam.LSTM:
-    #         for agent in smart_net.agents.values():
-    #             agent_state = agent.filter_and_process_agent_state(state)
-    #             if hpam.LSTM:
-    #                 agent.policy_net = SmartWriter.set_lstms_requires_grad_to_false(agent.policy_net)
-    #                 agent.target_net = SmartWriter.set_lstms_requires_grad_to_false(agent.target_net)
-    #             self.add_graph(agent.policy_net, input_to_model=[agent_state['own'], agent_state['neighbors']])
-    #             self.add_graph(agent.target_net, input_to_model=[agent_state['own'], agent_state['neighbors']])
+    def graphs(self, smart_net: SmartNet, state: dict):
+        """
+        Writes the nets structure to TensorBoard
+        TODO fix - doesn't work with LSTM
+        """
+        for agent in smart_net.agents.values():
+            agent_state = agent.filter_and_process_agent_state(state)
+            model_input = [agent_state['own'], agent_state['neighbors']]
+            if not hpam.SHARE_STATE:
+                model_input[1] = torch.tensor([])
+            if hpam.LSTM:
+                agent.policy_net = SmartWriter.set_lstms_requires_grad_to_false(agent.policy_net)
+                agent.target_net = SmartWriter.set_lstms_requires_grad_to_false(agent.target_net)
+            self.add_graph(agent.policy_net, input_to_model=model_input)
+            self.add_graph(agent.target_net, input_to_model=model_input)
     
     @staticmethod
     def set_lstms_requires_grad_to_false(model):
