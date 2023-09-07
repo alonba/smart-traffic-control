@@ -37,17 +37,11 @@ class SmartWriter(SummaryWriter):
             if not hpam.SHARE_STATE:
                 model_input[1] = torch.tensor([])
             if hpam.LSTM:
-                agent.policy_net = SmartWriter.set_lstms_requires_grad_to_false(agent.policy_net)
-                agent.target_net = SmartWriter.set_lstms_requires_grad_to_false(agent.target_net)
+                agent.policy_net.requires_grad_(False)
+                agent.target_net.requires_grad_(False)
             self.add_graph(agent.policy_net, input_to_model=model_input)
             self.add_graph(agent.target_net, input_to_model=model_input)
     
-    @staticmethod
-    def set_lstms_requires_grad_to_false(model):
-        for lstm in model.lstms.values():
-            for layer in lstm.values():
-                layer.requires_grad_(False)
-            
     def rewards_or_losses(self, smart_net: SmartNet, title: str, rewards_or_losses: pd.Series, episode: int):
         """
         Writes the total and individual rewards / losses to TensorBoard

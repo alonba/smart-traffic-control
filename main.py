@@ -120,6 +120,7 @@ if __name__=="__main__":
     aux.save_to_pickle(smart_net, output_dir + '/smart_net')
     
     # Save graphs of models to TensorBoard
-    # writer.graphs(smart_net, state_with_net_outputs)
+    writer.graphs(smart_net, state_with_net_outputs)
     
+    print("Job ended successfully!")
     end_of_file = True

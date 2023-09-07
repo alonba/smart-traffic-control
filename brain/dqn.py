@@ -3,6 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 import brain.hyper_params as hpam
 
+LSTM_LAYER = '_lstm_layer'
+HIDDEN_TO_EMB_LAYER = '_hidden_to_emb_layer'
+
 class DQN(nn.Module):
 
     def __init__(self, n_own_observations: int, n_neighbor_observations: dict, n_actions: int, neighbors: dict, device: str):
@@ -28,12 +31,19 @@ class DQN(nn.Module):
         
         # LSTM
         if hpam.LSTM:
-            self.lstms = {}
             for neighbor in neighbors.keys():
-                self.lstms[neighbor] = {   # Batch_first = true makes the input shape be (batch,seq,feature) instead of (seq, batch, feature)
-                    'lstm_layer': nn.LSTM(n_neighbor_observations[neighbor], hpam.HIDDEN_DIM, batch_first=True, device=device),
-                    'hidden_to_emb_layer': nn.Linear(hpam.HIDDEN_DIM, hpam.EMBEDDING_DIM, device=device)
-                     }
+                lstm_name = neighbor + LSTM_LAYER
+                fc_name = neighbor + HIDDEN_TO_EMB_LAYER
+                lstm = nn.LSTM(n_neighbor_observations[neighbor], hpam.HIDDEN_DIM, batch_first=True, device=device)
+                fc = nn.Linear(hpam.HIDDEN_DIM, hpam.EMBEDDING_DIM, device=device)
+                setattr(self, lstm_name, lstm)
+                setattr(self, fc_name, fc)
+            # self.lstms = {}
+            # for neighbor in neighbors.keys():
+            #     self.lstms[neighbor] = {   # Batch_first = true makes the input shape be (batch,seq,feature) instead of (seq, batch, feature)
+            #         'lstm_layer': nn.LSTM(n_neighbor_observations[neighbor], hpam.HIDDEN_DIM, batch_first=True, device=device),
+            #         'hidden_to_emb_layer': nn.Linear(hpam.HIDDEN_DIM, hpam.EMBEDDING_DIM, device=device)
+            #          }
                 
         
     def forward(self, own_state: torch.Tensor, neighbors_state: dict) -> torch.Tensor:
@@ -62,9 +72,23 @@ class DQN(nn.Module):
             # Put input into LSTM
             lstms_output = {}
             for neighbor in neighbors_state.keys():
+                lstm_name = neighbor + LSTM_LAYER
+                fc_name = neighbor + HIDDEN_TO_EMB_LAYER
+                lstm = getattr(self, lstm_name)
+                fc = getattr(self, fc_name)
+                
                 lstm_input = DQN.prepare_lstm_input(neighbors_state[neighbor])
-                lstm_out, (lstm_hidden_n, lstm_cell_n) = self.lstms[neighbor]['lstm_layer'](lstm_input)
-                lstms_output[neighbor] = self.lstms[neighbor]['hidden_to_emb_layer'](lstm_hidden_n)
+                
+                lstm_out, (lstm_hidden_n, lstm_cell_n) = lstm(lstm_input)
+                lstms_output[neighbor] = fc(lstm_hidden_n)
+
+
+
+            # lstms_output = {}
+            # for neighbor in neighbors_state.keys():
+            #     lstm_input = DQN.prepare_lstm_input(neighbors_state[neighbor])
+            #     lstm_out, (lstm_hidden_n, lstm_cell_n) = self.lstms[neighbor]['lstm_layer'](lstm_input)
+            #     lstms_output[neighbor] = self.lstms[neighbor]['hidden_to_emb_layer'](lstm_hidden_n)
                 
             # Concat LSTM output to own_state
             for lstm_output in lstms_output.values():
