@@ -18,12 +18,15 @@ class DQN(nn.Module):
         # Determine the number of inputs to the simple (no LSTM) part of the NN
         input_layer_size = n_own_observations
         if hpam.LSTM:
-            input_layer_size = hpam.EMBEDDING_DIM * (len(neighbors) + 1)   # +1 for the own_embedding
+            input_layer_size = hpam.EMBEDDING_DIM * len(neighbors)
         elif hpam.SHARE_STATE:
             input_layer_size += n_neighbor_observations['sum']
             
-        if hpam.LSTM:
+        if hpam.LSTM and hpam.IS_OWN_AGENT_STATE_EMBEDDING:
             self.own_state_encoder_layer = nn.Linear(n_own_observations, hpam.EMBEDDING_DIM, device=device)
+            input_layer_size += hpam.EMBEDDING_DIM
+        else:
+            input_layer_size += n_own_observations
             
         self.layer1 = nn.Linear(input_layer_size, hpam.NET_WIDTH, device=device)
         self.layer2 = nn.Linear(hpam.NET_WIDTH, hpam.NET_WIDTH, device=device)
@@ -38,13 +41,6 @@ class DQN(nn.Module):
                 fc = nn.Linear(hpam.HIDDEN_DIM, hpam.EMBEDDING_DIM, device=device)
                 setattr(self, lstm_name, lstm)
                 setattr(self, fc_name, fc)
-            # self.lstms = {}
-            # for neighbor in neighbors.keys():
-            #     self.lstms[neighbor] = {   # Batch_first = true makes the input shape be (batch,seq,feature) instead of (seq, batch, feature)
-            #         'lstm_layer': nn.LSTM(n_neighbor_observations[neighbor], hpam.HIDDEN_DIM, batch_first=True, device=device),
-            #         'hidden_to_emb_layer': nn.Linear(hpam.HIDDEN_DIM, hpam.EMBEDDING_DIM, device=device)
-            #          }
-                
         
     def forward(self, own_state: torch.Tensor, neighbors_state: dict) -> torch.Tensor:
         """
@@ -67,7 +63,8 @@ class DQN(nn.Module):
         merged_state = own_state
         if hpam.LSTM:
             # Run over merged state, with the encoded own state
-            merged_state = self.own_state_encoder_layer(own_state)
+            if hpam.IS_OWN_AGENT_STATE_EMBEDDING:
+                merged_state = self.own_state_encoder_layer(own_state)
             
             # Put input into LSTM
             lstms_output = {}
