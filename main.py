@@ -55,6 +55,7 @@ Explore{hpam.EXPLORE_CHANCE}_\
 Beta{args.neighbors_weight}_\
 StateShare-{hpam.SHARE_STATE}_\
 Stackelberg-{hpam.STACKELBERG}_\
+OwnEmbedder-{hpam.IS_OWN_AGENT_STATE_EMBEDDING}_\
 LSTM-{hpam.LSTM and args.steps_back}-{hpam.LSTM and hpam.HIDDEN_DIM}-{hpam.LSTM and hpam.EMBEDDING_DIM}_\
 StateQ-{hpam.IS_STATE_USE_Q}_\
 StateNc-{hpam.IS_STATE_USE_NC}_\
