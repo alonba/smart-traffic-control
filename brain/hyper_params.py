@@ -21,7 +21,7 @@ NET_WIDTH = 64                          # The width of the neural network
 
 TAU = 0.005                             # The update rate of the target network
 IS_SOFT = False                         # Hard or Soft update
-HARD_UPDATE_N = 50                      # Hard update every N episodes
+HARD_UPDATE_N = 12                      # Hard update every N episodes
 
 IS_PRE_PROCESS_PHASE_TO_CYCLIC = True   # Should we perform the cyclic transformation to the phase state
 
@@ -37,5 +37,5 @@ IS_OWN_AGENT_STATE_EMBEDDING = True     # Should we build a fc layer for the age
 
 LSTM = SHARE_STATE and True             # Whether we want to use an LSTM NN as an encoder for the neighbor's shared state.
 K_STEPS_BACK = 25                       # How many steps back do we feed the LSTM with
-HIDDEN_DIM = 32                         # LSTM layer output size
+HIDDEN_DIM = 64                         # LSTM layer output size
 EMBEDDING_DIM = 16                      # The size of the embedding space created by the LSTM

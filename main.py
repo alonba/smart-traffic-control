@@ -64,7 +64,7 @@ Cyclic-{hpam.IS_PRE_PROCESS_PHASE_TO_CYCLIC}\
 writer = SmartWriter(run_name)
 
  
-if __name__=="__main__":
+if __name__ == "__main__":
     reward_list = []
     for episode in range(hpam.EPISODES_NUM):
         # Initialize env
