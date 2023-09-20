@@ -47,6 +47,7 @@ smart_net = SmartNet(
     )
 
 # Initialize the SummaryWriter for TensorBoard. Its output will be written to ./runs/
+# TODO if hpam.LSTM is false, we get LSTM-False-False-False. Change implementation so we get LSTM-False
 run_name = f'\
 {aux.now()}_\
 {hpam.GRID_SIZE}_\
