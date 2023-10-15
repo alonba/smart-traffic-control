@@ -4,7 +4,7 @@ class Observability(Enum):
     NUMBER_OF_CARS = 'Nc'
 
 ALLOW_MPS = False                       # Is allowed to use Apple's MPS
-VERBOSE = True                          # Print progression logs or not
+VERBOSE = False                          # Print progression logs or not
 
 GRID_SIZE = '1x3'                       # The grid topology: rows x columns
 EPISODES_NUM = 10000                    # Number of episodes in the simulation
@@ -23,7 +23,7 @@ TAU = 0.005                             # The update rate of the target network
 IS_SOFT = False                         # Hard or Soft update
 HARD_UPDATE_N = 12                      # Hard update every N episodes
 
-IS_PRE_PROCESS_PHASE_TO_CYCLIC = True   # Should we perform the cyclic transformation to the phase state
+IS_PRE_PROCESS_PHASE_TO_CYCLIC = False   # Should we perform the cyclic transformation to the phase state
 
 IS_STATE_USE_Q = True                   # Should the state for an agent use the number of cars in the queues of the agent.
 IS_STATE_USE_NC = False                 # Should the state for an agent use the number of cars on links coming toward the agent
@@ -33,9 +33,9 @@ NEIGHBORS_WEIGHT = 0                    # The weight an agent gives to his neigh
 SHARE_STATE = True                      # Whether to share the neighbor's state or not.
 STACKELBERG = SHARE_STATE and False     # Whether we're playing a Stackelberg game.
 
-IS_OWN_AGENT_STATE_EMBEDDING = True     # Should we build a fc layer for the agent's own state
+IS_OWN_AGENT_STATE_EMBEDDING = False     # Should we build a fc layer for the agent's own state
 
 LSTM = SHARE_STATE and True             # Whether we want to use an LSTM NN as an encoder for the neighbor's shared state.
-K_STEPS_BACK = 25                       # How many steps back do we feed the LSTM with
+K_STEPS_BACK = 1                       # How many steps back do we feed the LSTM with
 HIDDEN_DIM = 64                         # LSTM layer output size
 EMBEDDING_DIM = 16                      # The size of the embedding space created by the LSTM

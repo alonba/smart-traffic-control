@@ -446,7 +446,7 @@ class SmartAgent(BaseAgent):
                     state['neighbors'][neighbor] = self.discrete_cyclic_to_sin_and_cos(state['neighbors'][neighbor].to_dict(), is_obs_space=False)
         if hpam.SHARE_STATE:
             for neighbor in state['neighbors'].keys():
-                state['neighbors'][neighbor] = self.sum_neighbor_donations(state['neighbors'][neighbor], is_obs_space=False, neighbor=neighbor)
+                state['neighbors'][neighbor] = self.sum_neighbor_donations(state['neighbors'][neighbor].to_dict(), is_obs_space=False, neighbor=neighbor)
         state['own'] = self.sum_green_queues_per_phase(state['own'], is_obs_space=False)
         return state
     

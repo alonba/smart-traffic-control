@@ -18,7 +18,7 @@ class DQN(nn.Module):
         # Determine the number of inputs to the simple (no LSTM) part of the NN
         input_layer_size = n_own_observations
         if hpam.LSTM:
-            input_layer_size = hpam.EMBEDDING_DIM * len(neighbors)
+            input_layer_size += hpam.EMBEDDING_DIM * len(neighbors)
         elif hpam.SHARE_STATE:
             input_layer_size += n_neighbor_observations['sum']
             
