@@ -24,7 +24,7 @@ class DQN(nn.Module):
             
         if hpam.LSTM and hpam.IS_OWN_AGENT_STATE_EMBEDDING:
             self.own_state_encoder_layer = nn.Linear(n_own_observations, hpam.EMBEDDING_DIM, device=device)
-            input_layer_size += hpam.EMBEDDING_DIM
+            input_layer_size += hpam.EMBEDDING_DIM - n_own_observations
             
         self.layer1 = nn.Linear(input_layer_size, hpam.NET_WIDTH, device=device)
         self.layer2 = nn.Linear(hpam.NET_WIDTH, hpam.NET_WIDTH, device=device)
