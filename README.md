@@ -23,5 +23,3 @@ The cooperation between the agents is modeled in 3 ways:
 1. Alon Ben-Arieh
 2. David Marder
 3. Ayal Taitler
-
-##
