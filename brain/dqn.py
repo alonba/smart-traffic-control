@@ -42,7 +42,6 @@ class DQN(nn.Module):
         
     def forward(self, own_state: torch.Tensor, neighbors_state: dict) -> torch.Tensor:
         """
-        # TODO add types to function declaration
         Called with either one element to determine next action, or a batch during optimization.
         Returns a tensor with 1 element
         """
